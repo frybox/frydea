@@ -1,0 +1,16 @@
+body {
+    display: flex;
+    height: 100vh;
+    margin: 0;
+}
+
+#editor {
+    flex: 1;
+    border-right: 1px solid #ccc;
+}
+
+#preview {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
