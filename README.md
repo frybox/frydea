@@ -1,2 +1,2 @@
-# fryth
-card-style note-taken application
+# frydea
+card-style idea-capture application
