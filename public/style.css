@@ -4,9 +4,13 @@ body {
     margin: 0;
 }
 
-#editor {
+#content {
     flex: 1;
     border-right: 1px solid #ccc;
+}
+
+#log p{
+    border-bottom: 1px solid #eee;
 }
 
 #preview {
