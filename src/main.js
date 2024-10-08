@@ -1,13 +1,45 @@
-import { EditorState } from "@codemirror/state";
-import { EditorView, basicSetup } from "codemirror";
-import { markdown } from "@codemirror/lang-markdown";
 import { marked } from "marked";
-import { vim } from "@replit/codemirror-vim";
 
 const editor = document.getElementById("editor");
 const log = document.getElementById("log");
 const preview = document.getElementById("preview");
 
+let cm = CodeMirror(editor, {
+    value: "# Markdown 编辑器\n\n在这里输入你的 Markdown 文本...",
+    mode: "markdown",
+    theme: "monokai",
+    lineNumbers: true,
+    lineWrapping: true,
+    autofocus: true,
+    keyMap: "vim",
+    extraKeys: {
+        "Ctrl-Space": "autocomplete",
+        "Ctrl-Enter": "run"
+    }});
+
+cm.on('change', function(cm, change) {
+    const markdownText = cm.getValue();
+    const htmlContent = marked(markdownText);
+    preview.innerHTML = htmlContent;
+});
+
+let keyCount = 0;
+let vimKeyCount = 0;
+cm.on('vim-keypress', function(key) {
+    vimKeyCount ++;
+    let p = document.createElement("p");
+    p.textContent = `v${vimKeyCount}: ${key}`;
+    log.insertBefore(p, log.firstChild);
+});
+cm.on('keydown', function(key) {
+    keyCount ++;
+    let p = document.createElement("p");
+    p.textContent = `k${keyCount}: ${key}`;
+    log.insertBefore(p, log.firstChild);
+    console.log(key);
+});
+
+/*
 const autoRenderer = EditorView.updateListener.of((update) => {
     if (update.changes) {
         const markdownText = view.state.doc.toString();
@@ -16,7 +48,6 @@ const autoRenderer = EditorView.updateListener.of((update) => {
     }
 });
 
-let updateCount = 0;
 const logKey = EditorView.updateListener.of((update) => {
     updateCount ++;
     let p = document.createElement("p");
@@ -41,4 +72,4 @@ const view = new EditorView({
     state,
     parent: editor
 });
-
+*/
