@@ -31,7 +31,7 @@ cm.on('vim-keypress', function(key) {
     p.textContent = `v${vimKeyCount}: ${key}`;
     log.insertBefore(p, log.firstChild);
 });
-cm.on('keydown', function(key) {
+cm.on('keydown', function(cm, key) {
     keyCount ++;
     let p = document.createElement("p");
     p.textContent = `k${keyCount}: ${key}`;

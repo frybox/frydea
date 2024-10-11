@@ -8860,15 +8860,18 @@
 
     on(div, "compositionstart", function (e) {
       this$1.composing = {data: e.data, done: false};
+      console.log('compositionstart');
     });
     on(div, "compositionupdate", function (e) {
       if (!this$1.composing) { this$1.composing = {data: e.data, done: false}; }
+      console.log(`compositionupdate: ${e.data}`);
     });
     on(div, "compositionend", function (e) {
       if (this$1.composing) {
         if (e.data != this$1.composing.data) { this$1.readFromDOMSoon(); }
         this$1.composing.done = true;
       }
+      console.log(`compositionend: ${e.data}`);
     });
 
     on(div, "touchstart", function () { return input.forceCompositionEnd(); });
