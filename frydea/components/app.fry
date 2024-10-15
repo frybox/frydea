@@ -1,0 +1,52 @@
+from fryhcs import Element
+
+def App():
+    <template>
+      <div h-full w-full>
+        <Header/>
+        <div flex h-full w-full>
+          <SideBar/>
+          <Main/>
+          <Preview/>
+        </div>
+      </div>
+    </template>
+    <script>
+    </script>
+
+def Header():
+    <template>
+      <div fixed top-0 w-full h-20px bg-blue-400>
+      </div>
+    </template>
+    <script>
+    </script>
+
+def SideBar():
+    <template>
+      <div w-10% h-full bg-yello-200>
+      </div>
+    </template>
+    <script>
+    </script>
+
+def Main():
+    <template>
+      <div ref=(editor) w-80% h-full bg-cyan-300>
+      </div>
+    </template>
+    <script>
+      import { EditorState } from "@codemirror/state";
+      import { EditorView, basicSetup } from "codemirror";
+      import { markdown } from "@codemirror/lang-markdown";
+      import { marked } from "marked";
+      import { vim } from "@replit/codemirror-vim";
+    </script>
+
+def Preview():
+    <template>
+      <div w-10% h-full bg-yello-200>
+      </div>
+    </template>
+    <script>
+    </script>

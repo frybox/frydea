@@ -15,12 +15,18 @@
     "@rollup/plugin-commonjs": "^28.0.0",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-terser": "^0.4.4",
+    "esbuild": "^0.24.0",
     "npm-run-all": "^4.1.5",
     "rollup": "^2.79.2",
     "serve": "^14.2.3"
   },
   "dependencies": {
-    "codemirror": "^5.65.18",
-    "marked": "^14.1.2"
+    "@codemirror/lang-markdown": "^6.3.0",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.34.1",
+    "@replit/codemirror-vim": "^6.2.1",
+    "codemirror": "^6.0.1",
+    "marked": "^14.1.2",
+    "npx": "^10.2.2"
   }
 }

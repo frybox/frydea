@@ -5,7 +5,6 @@ import { marked } from "marked";
 import { vim } from "@replit/codemirror-vim";
 
 const editor = document.getElementById("editor");
-const log = document.getElementById("log");
 const preview = document.getElementById("preview");
 
 const autoRenderer = EditorView.updateListener.of((update) => {
@@ -16,20 +15,16 @@ const autoRenderer = EditorView.updateListener.of((update) => {
     }
 });
 
-let updateCount = 0;
 const logKey = EditorView.updateListener.of((update) => {
-    updateCount ++;
-    let p = document.createElement("p");
-    p.textContent = `${updateCount}: ${update.changes}`;
-    log.insertBefore(p, log.firstChild);
-    console.log(update.changes);
+    console.log('------------------------');
+    console.log(update.view.state.selection.main);
+    console.log(update.view.observer.editContext.editContext);
 });
 
-
-
 const state = EditorState.create({
-    doc: "# Markdown 编辑器\n\n在这里输入你的 Markdown 文本...",
-    extensions: [vim(),
+    doc: "1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0",
+    extensions: [
+        vim(),
         basicSetup,
         markdown(),
         autoRenderer,
@@ -42,3 +37,4 @@ const view = new EditorView({
     parent: editor
 });
 
+view.focus();
