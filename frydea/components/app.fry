@@ -2,7 +2,7 @@ from fryhcs import Element
 
 def App():
   <template>
-    <div h-screen w-screen>
+    <div h-screen w-screen overflow-x-auto>
       <Header />
       <Body />
     </div>
