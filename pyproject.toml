@@ -1,0 +1,29 @@
+[project]
+name = "frydea"
+version = "0.1.0"
+keywords = [
+    "frydea",
+]
+authors = [{name="Zenk Ju", email="juzejian@gmail.com"},]
+description = "Card-style idea-capture application"
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "fryhcs",
+    "flask-sqlalchemy",
+]
+
+[project.urls]
+Homepage = "https://github.com/frybox/frydea"
+"Bug Tracker" = "https://github.com/frybox/frydea/issues"
+Source = "https://github.com/frybox/frydea"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

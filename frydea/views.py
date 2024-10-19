@@ -1,8 +1,6 @@
-from flask import Flask
 from fryhcs import html, render
+from frydea import app
 from frydea.components import App
-
-app = Flask(__name__)
 
 @app.get('/')
 def index():
