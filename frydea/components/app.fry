@@ -10,7 +10,7 @@ def App():
 
 def Header():
   <template>
-    <div fixed top-0 w-full h-20px bg-blue-400>
+    <div fixed top-0 w-full h-30px bg-blue-400>
     </div>
   </template>
   <script>
@@ -18,7 +18,7 @@ def Header():
 
 def Body():
   <template>
-    <div flex pt-20px h-full w-full>
+    <div flex mt-30px h-sub,100%,30px w-full>
       <SideBar/>
       <Main ref=(editor) />
       <Preview ref=(preview) />
