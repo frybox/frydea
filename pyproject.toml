@@ -17,6 +17,7 @@ classifiers = [
 dependencies = [
     "fryhcs",
     "flask-sqlalchemy",
+    "markdown",
 ]
 
 [project.urls]

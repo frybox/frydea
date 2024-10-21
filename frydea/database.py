@@ -1,17 +1,7 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker, declarative_base
-import os.path
-from pathlib import Path
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
 
-dir = Path(__file__).parent.parent / 'db.sqlite3'
-print(dir)
-engine = create_engine(f'sqlite:///{dir.as_posix()}')
-db_session = scoped_session(sessionmaker(autocommit=False,
-                                         autoflush=False,
-                                         bind=engine))
-Base = declarative_base()
-Base.query = db_session.query_property()
+class Base(DeclarativeBase):
+    pass
 
-def init_db():
-    import frydea.models
-    Base.metadata.create_all(bind=engine)
+db = SQLAlchemy(model_class=Base)
