@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import datetime
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from frydea.database import db
@@ -23,6 +23,9 @@ class User(db.Model):
 
 class Card(db.Model):
     __tablename__ = 'cards'
+    __table_args__ = (
+        UniqueConstraint('user_id', 'number'),
+    )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     number: Mapped[str] = mapped_column(index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
@@ -35,7 +38,7 @@ class Card(db.Model):
     update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
 
     user: Mapped['User'] = relationship(back_populates='cards')
-    history: Mapped[List['History']] = relationship(back_populates='card')
+    versions: Mapped[List['Version']] = relationship(back_populates='card')
 
     def __init__(self, user_id, name, create_time, noofday, content, html, version, update_time, number=None):
         self.user_id = user_id
@@ -49,20 +52,38 @@ class Card(db.Model):
         if number:
             self.number = number
         else:
-            self.number = self.card_number
+            self.number = self.card_number()
 
     def __repr__(self):
         return f'<Card {self.name!r}>'
 
-    @property
     def card_number(self):
         t = self.create_time
         no = self.noofday
-        return f'{t.year:04}-{t.month:02}-{t.day:02}-{no:04}'
+        if t and no:
+            return f'{t.year:04}-{t.month:02}-{t.day:02}-{no:04}'
+        else:
+            return ''
+    
+    def todict(self):
+        return {
+            'id': self.id,
+            'number': self.number,
+            'user_id': self.user_id,
+            'name': self.name,
+            'create_time': self.create_time,
+            'content': self.content,
+            'html': self.html,
+            'version': self.version,
+            'update_time': self.update_time,
+        }
 
 
-class History(db.Model):
-    __tablename__ = 'history'
+class Version(db.Model):
+    __tablename__ = 'versions'
+    __table_args__ = (
+        UniqueConstraint('card_id', 'version'),
+    )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     card_id: Mapped[int] = mapped_column(ForeignKey('cards.id'))
     name: Mapped[Optional[str]]
@@ -70,7 +91,8 @@ class History(db.Model):
     version: Mapped[int] = mapped_column(comment='版本号')
     update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
 
-    card: Mapped['Card'] = relationship(back_populates='history')
+    card: Mapped['Card'] = relationship(back_populates='versions')
+
     def __init__(self, card_id, name, content, version, update_time):
         self.card_id = card_id
         self.name = name
