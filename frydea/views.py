@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import abort
 from fryhcs import html, render
 from frydea import app
@@ -58,7 +59,7 @@ def update_card(card_id):
         return {
             'code': 1,
             'msg': 'invalid version',
-            'last_version': card.version,
+            'card': card.todict(),
         }
     elif last_version < card.version:
         return {
@@ -97,23 +98,20 @@ def get_card_list():
     return {
         'code': 0,
         'total': page.total,
+        'first_number': page.first,
+        'last_number': page.last,
         'pages': page.pages,
         'page': page.page,
         'per_page': page.per_page,
-        'cards': [{
-            'number': card.number,
-            'name': card.name,
-            'create_time': card.create_time,
-            'content': card.content,
-            'html': card.html,
-            'version': card.version,
-            'update_time': card.update_time,
-        } for card in page]
+        'cards': [card.todict() for card in page]
     }
 
 @app.delete('/cards/<int:card_id>')
 def delete_card(card_id):
+    user = get_user()
     card = db.get_or_404(Card, card_id)
+    if card.user_id != user.id:
+        abort(403)
     db.session.delete(card)
     db.session.commit()
     return {

@@ -10,7 +10,7 @@ def App():
 
 def Header():
   <template>
-    <div fixed top-0 w-full h-30px bg-blue-400>
+    <div fixed top-0 w-full h-30px z-100 bg-blue-400>
     </div>
   </template>
   <script>
@@ -35,7 +35,7 @@ def Body():
 
 def SideBar():
   <template>
-    <div w-1/5 box-border h-full bg-yello-200>
+    <div box-border h-full bg-yello-200>
     </div>
   </template>
   <script>
@@ -43,7 +43,7 @@ def SideBar():
 
 def Main():
   <template>
-    <div ref=(editor) w-2/5 h-full box-border bg-lime-50>
+    <div ref=(editor) w-3/5 mx-auto h-full box-border bg-lime-50>
     </div>
   </template>
   <script>
@@ -78,7 +78,7 @@ def Main():
 
 def Preview():
   <template>
-    <div ref=(preview) w-2/5 box-border h-full bg-slate-100>
+    <div ref=(preview) box-border h-full bg-slate-100>
     </div>
   </template>
   <script>
