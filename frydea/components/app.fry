@@ -1,4 +1,5 @@
 from fryhcs import Element
+from fryui.grid import HCenter
 
 def App():
   <template>
@@ -10,7 +11,7 @@ def App():
 
 def Header():
   <template>
-    <div fixed top-0 w-full h-30px z-100 bg-blue-400>
+    <div fixed top-0 w-full h-30px z-100 bg-accent>
     </div>
   </template>
   <script>
@@ -20,67 +21,121 @@ def Body():
   <template>
     <div flex mt-30px h-sub,100%,30px w-full>
       <SideBar/>
-      <Main ref=(editor) />
-      <Preview ref=(preview) />
+      <Main />
     </div>
   </template>
   <script>
-    import { marked } from "marked";
-    import { effect } from "fryhcs";
-    effect(function() {
-      const htmlContent = marked(editor.markdownText.value);
-      preview.innerHTML = htmlContent;
-    });
   </script>
 
 def SideBar():
   <template>
-    <div box-border h-full bg-yello-200>
+    <div box-border h-full w-30px bg-secondary>
     </div>
   </template>
   <script>
   </script>
 
 def Main():
+  left = <Index />
+  right = <Preview />
   <template>
-    <div ref=(editor) w-3/5 mx-auto h-full box-border bg-lime-50>
+    <div ref=(editor) box-border w-sub,100%,30px mx-auto h-full bg-gray-bg>
+      <HCenter {left} {right}>
+        <Content />
+      </HCenter>
     </div>
   </template>
   <script>
-    import { EditorState } from "@codemirror/state";
-    import { EditorView, basicSetup } from "codemirror";
-    import { markdown } from "@codemirror/lang-markdown";
-    import { vim } from "@replit/codemirror-vim";
-    import { signal } from "fryhcs";
-
-    let markdownText = signal('');
-    const autoRenderer = EditorView.updateListener.of((update) => {
-        if (update.changes) {
-            markdownText.value = view.state.doc.toString();
-        }
-    });
-    const state = EditorState.create({
-      doc: "1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0",
-      extensions: [
-        vim(),
-        basicSetup,
-        markdown(),
-        autoRenderer,
-      ]
-    })
-    const view = new EditorView({
-      state,
-      parent: editor
-    });
-    view.focus();
-    export default { markdownText };
   </script>
+
+def Index():
+  <template>
+    <div bg-secondary-bga>
+    </div>
+  </template>
 
 def Preview():
   <template>
-    <div ref=(preview) box-border h-full bg-slate-100>
+    <div ref=(preview) box-border h-full bg-secondary-bgx>
     </div>
   </template>
   <script>
     export default preview;
   </script>
+
+def Content():
+  <template>
+    <div bg-primary-elx text-primary-tx>
+      Content
+    </div>
+  </template>
+
+
+# def Body():
+#   <template>
+#     <div flex mt-30px h-sub,100%,30px w-full>
+#       <SideBar/>
+#       <Main ref=(editor) />
+#       <Preview ref=(preview) />
+#     </div>
+#   </template>
+#   <script>
+#     import { marked } from "marked";
+#     import { effect } from "fryhcs";
+#     effect(function() {
+#       const htmlContent = marked(editor.markdownText.value);
+#       preview.innerHTML = htmlContent;
+#     });
+#   </script>
+# 
+# def SideBar():
+#   <template>
+#     <div box-border h-full bg-yello-200>
+#     </div>
+#   </template>
+#   <script>
+#   </script>
+# 
+# def Main():
+#   <template>
+#     <div ref=(editor) w-3/5 mx-auto h-full box-border bg-lime-50>
+#     </div>
+#   </template>
+#   <script>
+#     import { EditorState } from "@codemirror/state";
+#     import { EditorView, basicSetup } from "codemirror";
+#     import { markdown } from "@codemirror/lang-markdown";
+#     import { vim } from "@replit/codemirror-vim";
+#     import { signal } from "fryhcs";
+# 
+#     let markdownText = signal('');
+#     const autoRenderer = EditorView.updateListener.of((update) => {
+#         if (update.changes) {
+#             markdownText.value = view.state.doc.toString();
+#         }
+#     });
+#     const state = EditorState.create({
+#       doc: "1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0",
+#       extensions: [
+#         vim(),
+#         basicSetup,
+#         markdown(),
+#         autoRenderer,
+#       ]
+#     })
+#     const view = new EditorView({
+#       state,
+#       parent: editor
+#     });
+#     view.focus();
+#     export default { markdownText };
+#   </script>
+# 
+# def Preview():
+#   <template>
+#     <div ref=(preview) box-border h-full bg-slate-100>
+#     </div>
+#   </template>
+#   <script>
+#     export default preview;
+#   </script>
