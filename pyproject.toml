@@ -15,7 +15,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "fryhcs",
     "fryui",
     "flask-sqlalchemy",
     "markdown",
