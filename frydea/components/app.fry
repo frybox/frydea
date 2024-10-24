@@ -74,26 +74,22 @@ def Content(cards=None):
   )
   <template>
     <div bg-primary-elx box-border h-full overflow-auto>
-      {<Card {card} />
-       for card in cards}
+      {<Card {card}/> for card in cards}
       <div w-full text-center mt-30px>
         <div ref=(newcard) hidden min-h-150px>
           <Card card={empty_card} />
         </div>
-        <Button ref=(addButton) wide info>
+        <Button @click=(onclick) wide info>
           <Icon type="plus" class="h-8 w-8"/>
         </Button>
       </div>
     </div>
   </template>
   <script>
-    import { effect } from "fryhcs";
-    effect(() => {
-      if (addButton.clicked.value) {
+    const onclick = () => {
         console.log("create a new card");
         newcard.removeAttribute('hidden');
-      }
-    });
+    };
   </script>
 
 def Card(card):
