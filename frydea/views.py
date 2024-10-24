@@ -5,20 +5,25 @@ from frydea import app
 from frydea.components import App
 from frydea.database import db
 from frydea.models import Card, User, Version
+from sqlalchemy import desc
 
 import markdown
 
 def get_user():
-    user = db.select(User).where(User.id==1).first()
+    user = db.session.get(User, 1)
     if not user:
-        user = User(id=1, name="admin", email="admin@frydea.org")
+        user = User(name="admin", email="admin@frydea.org")
         db.session.add(user)
         db.session.commit()
     return user
 
 @app.get('/')
 def index():
-    return html(App, title='Frydea', autoreload=False)
+    user = get_user()
+    query = db.select(Card).where(Card.user_id == user.id)
+    query = query.order_by(desc(Card.create_time)).limit(10)
+    cards = reversed(db.session.scalars(query).all())
+    return html(App, args={'cards': cards}, title='Frydea', autoreload=False)
 
 @app.post('/cards')
 def create_card():
