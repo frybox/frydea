@@ -27,7 +27,7 @@ class Card(db.Model):
         UniqueConstraint('user_id', 'number'),
     )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    number: Mapped[str] = mapped_column(index=True)
+    number: Mapped[str]
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     name: Mapped[Optional[str]]
     create_time: Mapped[datetime] = mapped_column(comment='card创建时间')
@@ -40,6 +40,8 @@ class Card(db.Model):
     user: Mapped['User'] = relationship(back_populates='cards')
     versions: Mapped[List['Version']] = relationship(back_populates='card')
 
+    def __init__(self, user_id,):
+        self.user_id = user_id
     def __init__(self, user_id, name, create_time, noofday, content, html, version, update_time, number=None):
         self.user_id = user_id
         self.name = name
