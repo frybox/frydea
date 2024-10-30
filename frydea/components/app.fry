@@ -1,9 +1,10 @@
-from types import SimpleNamespace
 from datetime import datetime
 from fryhcs import Element
 from fryui import HCenter, Icon, Button
+from frydea.models import Card as CardModel
 
 def App(cards=None):
+  cards = [] if not cards else cards
   <template>
     <div h-screen w-screen overflow-x-auto>
       <Header />
@@ -66,19 +67,13 @@ def Preview():
 
 def Content(cards=None):
   cards = cards if cards else []
-  empty_card = SimpleNamespace(
-    number='',
-    name='新建卡片',
-    update_time=datetime.now(),
-    html='<h1>Hello world</h1>',
-  )
+  card = CardModel()
+  card.update_time = datetime.now()
   <template>
-    <div bg-primary-elx box-border h-full overflow-auto>
+    <div ref=(container) bg-primary-elx box-border h-full overflow-auto>
+      <Card frytemplate ref=(template) {card} />
       {<Card {card}/> for card in cards}
-      <div w-full text-center mt-30px>
-        <div ref=(newcard) hidden min-h-150px>
-          <Card card={empty_card} />
-        </div>
+      <div ref=(oparea) w-full text-center mt-30px>
         <Button @click=(onclick) wide info>
           <Icon type="plus" class="h-8 w-8"/>
         </Button>
@@ -86,97 +81,124 @@ def Content(cards=None):
     </div>
   </template>
   <script>
-    const onclick = () => {
-        console.log("create a new card");
-        newcard.removeAttribute('hidden');
+    const onclick = async () => {
+        const newcard = await template.generate();
+        newcard.toEditor();
+        container.insertBefore(newcard.domElement, oparea);
     };
   </script>
 
 def Card(card):
+  time = card.update_time.strftime('%Y-%m-%d %H:%M')
   <template>
-    <div w-full mb-20px border border-gray-elx rounded relative>
+    <div @dblclick=(toEditor) w-full mb-20px border border-gray-elx rounded relative>
       <div flex justify-between w-full h-30px bg-secondary>
         <div flex>
           <Icon type="file-text"/>
-          <p>{card.number}</p>
+          <p ref=(elNumber)>{card.number}</p>
         </div>
-        <p>{card.name}</p>
-        <p>{card.update_time}</p>
+        <p ref=(elName)>{card.name}</p>
+        <p ref=(elUpdateTime)>{time}</p>
       </div>
-      <div w-full bg-secondary-bg>
-        {card.html}
+      <div ref=(elContent) @focusout=(toPreview)
+           w-full bg-secondary-bg overflow-hidden font-mono>
       </div>
       <div w-full h-30px bg-secondary>
       </div>
     </div>
   </template>
+  <script card={card.todict()}>
+    import * as dayjs from "dayjs";
+    import { marked } from "marked";
+    import { EditorState } from "@codemirror/state";
+    import { EditorView, basicSetup } from "codemirror";
+    import { markdown } from "@codemirror/lang-markdown";
+    import { vim } from "@replit/codemirror-vim";
+    import { signal } from "fryhcs";
 
+    let current = card;
+    let editor;
 
-# def Body():
-#   <template>
-#     <div flex mt-30px h-sub,100%,30px w-full>
-#       <SideBar/>
-#       <Main ref=(editor) />
-#       <Preview ref=(preview) />
-#     </div>
-#   </template>
-#   <script>
-#     import { marked } from "marked";
-#     import { effect } from "fryhcs";
-#     effect(function() {
-#       const htmlContent = marked(editor.markdownText.value);
-#       preview.innerHTML = htmlContent;
-#     });
-#   </script>
-# 
-# def SideBar():
-#   <template>
-#     <div box-border h-full bg-yello-200>
-#     </div>
-#   </template>
-#   <script>
-#   </script>
-# 
-# def Main():
-#   <template>
-#     <div ref=(editor) w-3/5 mx-auto h-full box-border bg-lime-50>
-#     </div>
-#   </template>
-#   <script>
-#     import { EditorState } from "@codemirror/state";
-#     import { EditorView, basicSetup } from "codemirror";
-#     import { markdown } from "@codemirror/lang-markdown";
-#     import { vim } from "@replit/codemirror-vim";
-#     import { signal } from "fryhcs";
-# 
-#     let markdownText = signal('');
-#     const autoRenderer = EditorView.updateListener.of((update) => {
-#         if (update.changes) {
-#             markdownText.value = view.state.doc.toString();
-#         }
-#     });
-#     const state = EditorState.create({
-#       doc: "1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0",
-#       extensions: [
-#         vim(),
-#         basicSetup,
-#         markdown(),
-#         autoRenderer,
-#       ]
-#     })
-#     const view = new EditorView({
-#       state,
-#       parent: editor
-#     });
-#     view.focus();
-#     export default { markdownText };
-#   </script>
-# 
-# def Preview():
-#   <template>
-#     <div ref=(preview) box-border h-full bg-slate-100>
-#     </div>
-#   </template>
-#   <script>
-#     export default preview;
-#   </script>
+    const createDoc = () => {
+      const updator = EditorView.updateListener.of((update) => {
+          if (update.changes) {
+              current.content = editor.state.doc.toString();
+          }
+      });
+      const state = EditorState.create({
+        doc: current.content,
+        extensions: [
+          vim(),
+          basicSetup,
+          markdown(),
+          updator,
+        ]
+      })
+      return state;
+    }
+
+    const createEditor = () => {
+      let height = elContent.scrollHeight;
+      const state = createDoc();
+      if (editor) {
+        editor.setState(state);
+      } else {
+        elContent.innerHTML = '';
+        editor = new EditorView({
+          state,
+          parent: elContent,
+        });
+      }
+      if (elContent.scrollHeight < height) {
+        elContent.style.height = '' + height + 'px';
+      }
+      editor.focus();
+    }
+
+    const createPreview = () => {
+      let height = elContent.scrollHeight;
+      if (editor) {
+        editor.destroy();
+        editor = null;
+      }
+      elContent.innerHTML = marked(current.content);
+      if (elContent.scrollHeight < height) {
+        elContent.style.height = '' + height + 'px';
+      }
+    }
+
+    const setCard = (card) => {
+      elNumber.textContent = card.number;
+      elName.textContent = card.name;
+      elUpdateTime.textContent = dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
+      current = card;
+      updateView();
+    }
+
+    const updateView = () => {
+      if (editor) {
+        createEditor();
+      } else {
+        createPreview();
+      }
+    }
+
+    const toEditor = () => {
+      if (!editor) {
+        createEditor();
+      }
+    }
+
+    const toPreview = () => {
+      if (editor) {
+        createPreview();
+      }
+    }
+
+    export default {
+      current,
+      setCard,
+      toEditor,
+      toPreview,
+    }
+  </script>

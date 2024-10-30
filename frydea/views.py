@@ -7,8 +7,6 @@ from frydea.database import db
 from frydea.models import Card, User, Version
 from sqlalchemy import desc
 
-import markdown
-
 def get_user():
     user = db.session.get(User, 1)
     if not user:
@@ -25,24 +23,47 @@ def index():
     cards = reversed(db.session.scalars(query).all())
     return html(App, args={'cards': cards}, title='Frydea', autoreload=False)
 
+def next_noofday(user):
+    def sameday(dt1, dt2):
+        return (dt1.year == dt2.year and
+                dt1.month == dt2.month and
+                dt1.day == dt2.day)
+    query = db.select(Card).where(Card.user_id == user.id)
+    query = query.order_by(desc(Card.create_time)).limit(1)
+    card = db.session.scalars(query).first()
+    if not card:
+        return 0
+    else:
+        now = datetime.now()
+        if sameday(now, card.create_time):
+            return card.noofday + 1
+        else:
+            return 0
+
 @app.post('/cards')
 def create_card():
     user = get_user()
     form = request.form
     name = form['name']
     create_time = datetime.now()
-    noofday = db.select(Card).where(Card.user_id == user.id).count() + 1
+    noofday = next_noofday(user)
     content = form['content']
-    html = markdown.markdown(content)
 
-    card = Card(user_id=user.id,
-                name=name,
-                create_time=create_time,
-                noofday=noofday,
-                content=content,
-                html=html,
-                version=1,
-                update_time=create_time)
+    conflict = True
+
+    while conflict:
+        card = Card(user_id=user.id,
+                    name=name,
+                    create_time=create_time,
+                    noofday=noofday,
+                    content=content,
+                    version=1,
+                    update_time=create_time)
+        query = db.select(Card).where(Card.user_id == user.id, Card.number == card.number)
+        if db.session.scalars(query).first():
+            noofday += 1
+        else:
+            conflict = False
     db.session.add(card)
     db.session.commit()
     return {
@@ -69,7 +90,7 @@ def update_card(card_id):
     elif last_version < card.version:
         return {
             'code': 2,
-            'msg': 'new version',
+            'msg': 'conflict version',
             'card': card.todict(),
         }
     diffname = name and name != card.name
@@ -84,7 +105,6 @@ def update_card(card_id):
             card.name = name
         if diffcontent:
             card.content = content
-            card.html = markdown.markdown(content)
         card.version = last_version + 1
         card.update_time = datetime.now()
         db.session.add(version)

@@ -33,28 +33,17 @@ class Card(db.Model):
     create_time: Mapped[datetime] = mapped_column(comment='card创建时间')
     noofday: Mapped[int] = mapped_column(comment='创建当天编号')
     content: Mapped[str] = mapped_column(comment='Markdown内容')
-    html: Mapped[str] = mapped_column(comment='渲染后的HTML内容')
     version: Mapped[int] = mapped_column(comment='版本号')
     update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
 
     user: Mapped['User'] = relationship(back_populates='cards')
     versions: Mapped[List['Version']] = relationship(back_populates='card')
 
-    def __init__(self, user_id,):
-        self.user_id = user_id
-    def __init__(self, user_id, name, create_time, noofday, content, html, version, update_time, number=None):
-        self.user_id = user_id
-        self.name = name
-        self.create_time = create_time
-        self.noofday = noofday
-        self.content = content
-        self.html = html
-        self.version = version
-        self.update_time = update_time
-        if number:
-            self.number = number
-        else:
-            self.number = self.card_number()
+    def __init__(self):
+        self.user_id = 0
+        self.number = ''
+        self.name = '新建卡片'
+        self.content = ''
 
     def __repr__(self):
         return f'<Card {self.name!r}>'
@@ -73,11 +62,10 @@ class Card(db.Model):
             'number': self.number,
             'user_id': self.user_id,
             'name': self.name,
-            'create_time': self.create_time,
+            'create_time': self.create_time.isoformat() if self.create_time else '',
             'content': self.content,
-            'html': self.html,
             'version': self.version,
-            'update_time': self.update_time,
+            'update_time': self.update_time.isoformat() if self.update_time else '',
         }
 
 
