@@ -91,8 +91,12 @@ def Content(cards=None):
 def Card(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
   <template>
-    <div @dblclick=(toEditor) w-full mb-20px border border-gray-elx rounded relative>
-      <div flex justify-between w-full h-30px bg-secondary>
+    <div @dblclick=(toEditor) w-full min-h-200px mb-20px
+         border border-gray-bdx rounded-md
+         flex flex-col>
+      <div flex-none h-30px w-full
+           flex justify-between 
+           bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
           <p ref=(elNumber)>{card.number}</p>
@@ -101,9 +105,11 @@ def Card(card):
         <p ref=(elUpdateTime)>{time}</p>
       </div>
       <div ref=(elContent) @focusout=(toPreview)
-           w-full bg-secondary-bg overflow-hidden font-mono>
+           flex-auto w-full
+           bg-secondary-bg overflow-hidden font-mono>
       </div>
-      <div w-full h-30px bg-secondary>
+      <div flex-none w-full h-30px
+           bg-gray-el border border-gray-bdx>
       </div>
     </div>
   </template>
@@ -131,6 +137,7 @@ def Card(card):
           vim(),
           basicSetup,
           markdown(),
+          EditorView.lineWrapping,
           updator,
         ]
       })
