@@ -58,8 +58,11 @@ def Index():
   </template>
 
 def Preview():
+  card = CardModel()
+  card.update_time = datetime.now()
   <template>
     <div box-border h-full bg-secondary-bgx overflow-auto>
+      <PreviewCard frytemplate ref=(template) {card} />
     </div>
   </template>
   <script>
@@ -71,8 +74,8 @@ def Content(cards=None):
   card.update_time = datetime.now()
   <template>
     <div ref=(container) bg-primary-elx box-border h-full overflow-auto>
-      <Card frytemplate ref=(template) {card} />
-      {<Card {card}/> for card in cards}
+      <EditorCard frytemplate ref=(template) {card} />
+      {<EditorCard {card}/> for card in cards}
       <div ref=(oparea) w-full text-center mt-30px>
         <Button @click=(onclick) wide info>
           <Icon type="plus" class="h-8 w-8"/>
@@ -83,15 +86,15 @@ def Content(cards=None):
   <script>
     const onclick = async () => {
         const newcard = await template.generate();
-        newcard.toEditor();
+        newcard.createEditor();
         container.insertBefore(newcard.domElement, oparea);
     };
   </script>
 
-def Card(card):
+def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
   <template>
-    <div @dblclick=(toEditor) w-full min-h-200px mb-20px
+    <div w-full min-h-200px mb-20px
          border border-gray-bdx rounded-md
          flex flex-col>
       <div flex-none h-30px w-full
@@ -101,12 +104,11 @@ def Card(card):
           <Icon type="file-text"/>
           <p ref=(elNumber)>{card.number}</p>
         </div>
-        <p ref=(elName)>{card.name}</p>
         <p ref=(elUpdateTime)>{time}</p>
       </div>
-      <div ref=(elContent) @focusout=(toPreview)
+      <div ref=(elContent)
            flex-auto w-full
-           bg-secondary-bg overflow-hidden font-mono>
+           bg-secondary-bg overflow-hidden>
       </div>
       <div flex-none w-full h-30px
            bg-gray-el border border-gray-bdx>
@@ -115,37 +117,59 @@ def Card(card):
   </template>
   <script card={card.todict()}>
     import * as dayjs from "dayjs";
-    import { marked } from "marked";
     import { EditorState } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
     import { vim } from "@replit/codemirror-vim";
     import { signal } from "fryhcs";
+    import { setCard } from "./data.js";
 
-    let current = card;
+    let current = setCard(card);
     let editor;
 
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
           if (update.changes) {
-              current.content = editor.state.doc.toString();
+              current.content.value = editor.state.doc.toString();
           }
       });
+      const frytheme = EditorView.theme({
+          "&": {
+            color: "white",
+            backgroundColor: "#034"
+          },
+          ".cm-content": {
+            caretColor: "#0e9",
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,"Liberation Mono", "Courier New", monospace',
+          },
+          "&.cm-focused .cm-cursor": {
+            borderLeftColor: "#0e9"
+          },
+          "&.cm-focused .cm-selectionBackground, ::selection": {
+            backgroundColor: "#074"
+          },
+          ".cm-gutters": {
+            backgroundColor: "#045",
+            color: "#ddd",
+            border: "none"
+          }
+        }, {dark: false})
+
       const state = EditorState.create({
-        doc: current.content,
+        doc: current.content.peek(),
         extensions: [
           vim(),
           basicSetup,
           markdown(),
           EditorView.lineWrapping,
           updator,
+          frytheme,
         ]
       })
       return state;
     }
 
     const createEditor = () => {
-      let height = elContent.scrollHeight;
       const state = createDoc();
       if (editor) {
         editor.setState(state);
@@ -156,56 +180,53 @@ def Card(card):
           parent: elContent,
         });
       }
-      if (elContent.scrollHeight < height) {
-        elContent.style.height = '' + height + 'px';
-      }
       editor.focus();
-    }
-
-    const createPreview = () => {
-      let height = elContent.scrollHeight;
-      if (editor) {
-        editor.destroy();
-        editor = null;
-      }
-      elContent.innerHTML = marked(current.content);
-      if (elContent.scrollHeight < height) {
-        elContent.style.height = '' + height + 'px';
-      }
-    }
-
-    const setCard = (card) => {
-      elNumber.textContent = card.number;
-      elName.textContent = card.name;
-      elUpdateTime.textContent = dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
-      current = card;
-      updateView();
-    }
-
-    const updateView = () => {
-      if (editor) {
-        createEditor();
-      } else {
-        createPreview();
-      }
-    }
-
-    const toEditor = () => {
-      if (!editor) {
-        createEditor();
-      }
-    }
-
-    const toPreview = () => {
-      if (editor) {
-        createPreview();
-      }
     }
 
     export default {
       current,
-      setCard,
-      toEditor,
-      toPreview,
+      createEditor,
     }
+  </script>
+
+
+def PreviewCard(card):
+  time = card.update_time.strftime('%Y-%m-%d %H:%M')
+  cardId = card.id
+  <template>
+    <div w-full min-h-200px mb-20px
+         border border-gray-bdx rounded-md
+         flex flex-col>
+      <div flex-none h-30px w-full
+           flex justify-between 
+           bg-gray-el border border-gray-bdx>
+        <div flex>
+          <Icon type="file-text"/>
+          <p ref=(elNumber)>{card.number}</p>
+        </div>
+        <p ref=(elUpdateTime)>{time}</p>
+      </div>
+      <div ref=(elContent)
+           flex-auto w-full
+           bg-secondary-bg overflow-hidden font-mono>
+      </div>
+      <div flex-none w-full h-30px
+           bg-gray-el border border-gray-bdx>
+      </div>
+    </div>
+  </template>
+  <script {cardId}>
+    import * as dayjs from "dayjs";
+    import { marked } from "marked";
+    import { getCard } from "./data.js";
+    import { effect } from "fryhcs";
+
+    let current = getCard(cardId);
+
+    const dispose = effect(() => {
+      elContent.innerHTML = marked(current.content.value);
+      elUpdateTime.textContent = dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
+    });
+
+    export default { dispose };
   </script>

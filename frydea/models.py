@@ -29,7 +29,6 @@ class Card(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     number: Mapped[str]
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    name: Mapped[Optional[str]]
     create_time: Mapped[datetime] = mapped_column(comment='card创建时间')
     noofday: Mapped[int] = mapped_column(comment='创建当天编号')
     content: Mapped[str] = mapped_column(comment='Markdown内容')
@@ -42,11 +41,10 @@ class Card(db.Model):
     def __init__(self):
         self.user_id = 0
         self.number = ''
-        self.name = '新建卡片'
         self.content = ''
 
     def __repr__(self):
-        return f'<Card {self.name!r}>'
+        return f'<Card {self.number!r}>'
 
     def card_number(self):
         t = self.create_time
@@ -61,7 +59,6 @@ class Card(db.Model):
             'id': self.id,
             'number': self.number,
             'user_id': self.user_id,
-            'name': self.name,
             'create_time': self.create_time.isoformat() if self.create_time else '',
             'content': self.content,
             'version': self.version,
@@ -76,19 +73,17 @@ class Version(db.Model):
     )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     card_id: Mapped[int] = mapped_column(ForeignKey('cards.id'))
-    name: Mapped[Optional[str]]
     content: Mapped[str] = mapped_column(comment='Markdown内容')
     version: Mapped[int] = mapped_column(comment='版本号')
     update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
 
     card: Mapped['Card'] = relationship(back_populates='versions')
 
-    def __init__(self, card_id, name, content, version, update_time):
+    def __init__(self, card_id, content, version, update_time):
         self.card_id = card_id
-        self.name = name
         self.content = content
         self.version = version
         self.update_time = update_time
 
     def __repr__(self):
-        return f'<History {self.name!r}>'
+        return f'<Version {self.card_id!r}@{self.version}>'
