@@ -4,9 +4,9 @@ import { signal } from "fryhcs";
 const cards = {};
 
 const setCard = (card) => {
-  const { id, number, createTime, content, version, updateTime } = card;
+  const { number, createTime, content, version, updateTime } = card;
   let card1;
-  if ( id in cards ) {
+  if ( number in cards ) {
     card1 = cards[id];
     card1.content.value = content;
     card1.last_content = content;

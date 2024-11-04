@@ -102,9 +102,9 @@ def EditorCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p ref=(elNumber)>{card.number}</p>
+          <p>[{card.number}](number)</p>
         </div>
-        <p ref=(elUpdateTime)>{time}</p>
+        <p>[{time}](time)</p>
       </div>
       <div ref=(elContent)
            flex-auto w-full
@@ -116,21 +116,75 @@ def EditorCard(card):
     </div>
   </template>
   <script card={card.todict()}>
-    import * as dayjs from "dayjs";
+    import dayjs from "dayjs";
     import { EditorState } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
-    import { vim } from "@replit/codemirror-vim";
+    import { vim, CodeMirror } from "@replit/codemirror-vim";
     import { signal } from "fryhcs";
     import { setCard } from "./data.js";
+    import { oneDark } from "@codemirror/theme-one-dark";
 
-    let current = setCard(card);
     let editor;
+
+    const getTime = (card) => dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
+
+    const number = signal(card.number);
+    const time = signal(getTime(card));
+    const content = signal(card.content);
+    let version = card.version;
+
+    CodeMirror.commands.save = async () => {
+      const baseUrl = window.location.origin;
+      let returned;
+      if (number.value) {
+        const url = baseUrl + `/cards/${content.number}`;
+        const data = {
+          content: content.peek(),
+          last_version: version,
+        }
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        const result = await response.json();
+        if (result.code === 0) {
+          console.log('saved');
+          returned = result.card;
+        } else {
+          console.log(result.msg);
+        }
+      } else {
+        const url = baseUrl + '/cards';
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({content}),
+        });
+        const result = await response.json();
+        if (result.code === 0) {
+          console.log('saved');
+          returned = result.card;
+        } else {
+          console.log(result.msg);
+        }
+      }
+      if (returned) {
+        number.value = returned.number;
+        time.value = getTime(returned);
+        version = returned.version;
+      }
+    };
 
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
           if (update.changes) {
-              current.content.value = editor.state.doc.toString();
+              content.value = editor.state.doc.toString();
           }
       });
       const frytheme = EditorView.theme({
@@ -153,10 +207,10 @@ def EditorCard(card):
             color: "#ddd",
             border: "none"
           }
-        }, {dark: false})
+        }, {dark: true})
 
       const state = EditorState.create({
-        doc: current.content.peek(),
+        doc: content.peek(),
         extensions: [
           vim(),
           basicSetup,
@@ -164,6 +218,7 @@ def EditorCard(card):
           EditorView.lineWrapping,
           updator,
           frytheme,
+          oneDark,
         ]
       })
       return state;
@@ -184,7 +239,6 @@ def EditorCard(card):
     }
 
     export default {
-      current,
       createEditor,
     }
   </script>

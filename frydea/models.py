@@ -38,10 +38,14 @@ class Card(db.Model):
     user: Mapped['User'] = relationship(back_populates='cards')
     versions: Mapped[List['Version']] = relationship(back_populates='card')
 
-    def __init__(self):
-        self.user_id = 0
-        self.number = ''
-        self.content = ''
+    def __init__(self, user_id=0, create_time=None, noofday=1, number='', content='', version=1, update_time=None):
+        self.user_id = user_id
+        self.create_time = create_time if create_time else datetime.now()
+        self.noofday = noofday
+        self.content = content
+        self.version = version
+        self.update_time = update_time if update_time else self.create_time
+        self.number = number if number else self.card_number()
 
     def __repr__(self):
         return f'<Card {self.number!r}>'
@@ -56,7 +60,6 @@ class Card(db.Model):
     
     def todict(self):
         return {
-            'id': self.id,
             'number': self.number,
             'user_id': self.user_id,
             'create_time': self.create_time.isoformat() if self.create_time else '',

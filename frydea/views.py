@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import abort
+from flask import abort, request
 from fryhcs import html, render
 from frydea import app
 from frydea.components import App
@@ -44,7 +44,6 @@ def next_noofday(user):
 def create_card():
     user = get_user()
     form = request.form
-    name = form['name']
     create_time = datetime.now()
     noofday = next_noofday(user)
     content = form['content']
@@ -53,7 +52,6 @@ def create_card():
 
     while conflict:
         card = Card(user_id=user.id,
-                    name=name,
                     create_time=create_time,
                     noofday=noofday,
                     content=content,
@@ -71,16 +69,16 @@ def create_card():
         'card': card.todict()
     }
 
-@app.put('/cards/<int:card_id>')
-def update_card(card_id):
+@app.put('/cards/<card_number>')
+def update_card(card_number):
     user = get_user()
-    card = db.get_or_404(Card, card_id)
-    if card.user_id != user.id:
-        abort(403)
-    form = request.form
-    name = form['name']
-    content = form['content']
-    last_version = int(form['last_version'])
+    query = db.select(Card).where(Card.user_id == user.id, Card.number == card_number)
+    card = db.session.scalars(query).first()
+    if not card:
+        abort(404)
+    data = request.get_json()
+    content = data['content']
+    last_version = int(data['last_version'])
     if last_version > card.version:
         return {
             'code': 1,
@@ -93,18 +91,13 @@ def update_card(card_id):
             'msg': 'conflict version',
             'card': card.todict(),
         }
-    diffname = name and name != card.name
-    diffcontent = content != card.content
-    if diffname or diffcontent:
+    if content != card.content:
         version = Version(card_id=card.id,
                           name=card.name,
                           content=card.content,
                           version=card.version,
                           update_time=card.update_time)
-        if diffname:
-            card.name = name
-        if diffcontent:
-            card.content = content
+        card.content = content
         card.version = last_version + 1
         card.update_time = datetime.now()
         db.session.add(version)
@@ -131,12 +124,13 @@ def get_card_list():
         'cards': [card.todict() for card in page]
     }
 
-@app.delete('/cards/<int:card_id>')
-def delete_card(card_id):
+@app.delete('/cards/<card_number>')
+def delete_card(card_number):
     user = get_user()
-    card = db.get_or_404(Card, card_id)
-    if card.user_id != user.id:
-        abort(403)
+    query = db.select(Card).where(Card.user_id == user.id, Card.number == card_number)
+    card = db.session.scalars(query).first()
+    if not card:
+        abort(404)
     db.session.delete(card)
     db.session.commit()
     return {
