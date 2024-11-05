@@ -38,7 +38,7 @@ class Card(db.Model):
     user: Mapped['User'] = relationship(back_populates='cards')
     versions: Mapped[List['Version']] = relationship(back_populates='card')
 
-    def __init__(self, user_id=0, create_time=None, noofday=1, number='', content='', version=1, update_time=None):
+    def __init__(self, user_id=0, create_time=None, noofday=0, number='', content='', version=0, update_time=None):
         self.user_id = user_id
         self.create_time = create_time if create_time else datetime.now()
         self.noofday = noofday

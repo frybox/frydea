@@ -102,9 +102,9 @@ def EditorCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p>[{card.number}](number)</p>
+          <p>[{card.number}](numberSignal)</p>
         </div>
-        <p>[{time}](time)</p>
+        <p>[{time}](timeSignal)</p>
       </div>
       <div ref=(elContent)
            flex-auto w-full
@@ -129,18 +129,19 @@ def EditorCard(card):
 
     const getTime = (card) => dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
 
-    const number = signal(card.number);
-    const time = signal(getTime(card));
-    const content = signal(card.content);
+    const numberSignal = signal(card.number);
+    const timeSignal = signal(getTime(card));
+    const contentSignal = signal(card.content);
     let version = card.version;
 
     CodeMirror.commands.save = async () => {
       const baseUrl = window.location.origin;
+      const content = contentSignal.peek()
       let returned;
-      if (number.value) {
-        const url = baseUrl + `/cards/${content.number}`;
+      if (numberSignal.peek()) {
+        const url = baseUrl + `/cards/${numberSignal.peek()}`;
         const data = {
-          content: content.peek(),
+          content: content,
           last_version: version,
         }
         const response = await fetch(url, {
@@ -175,8 +176,8 @@ def EditorCard(card):
         }
       }
       if (returned) {
-        number.value = returned.number;
-        time.value = getTime(returned);
+        numberSignal.value = returned.number;
+        timeSignal.value = getTime(returned);
         version = returned.version;
       }
     };
@@ -184,7 +185,7 @@ def EditorCard(card):
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
           if (update.changes) {
-              content.value = editor.state.doc.toString();
+              contentSignal.value = editor.state.doc.toString();
           }
       });
       const frytheme = EditorView.theme({
@@ -210,7 +211,7 @@ def EditorCard(card):
         }, {dark: true})
 
       const state = EditorState.create({
-        doc: content.peek(),
+        doc: contentSignal.peek(),
         extensions: [
           vim(),
           basicSetup,

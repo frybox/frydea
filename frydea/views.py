@@ -32,21 +32,21 @@ def next_noofday(user):
     query = query.order_by(desc(Card.create_time)).limit(1)
     card = db.session.scalars(query).first()
     if not card:
-        return 0
+        return 1
     else:
         now = datetime.now()
         if sameday(now, card.create_time):
             return card.noofday + 1
         else:
-            return 0
+            return 1
 
 @app.post('/cards')
 def create_card():
     user = get_user()
-    form = request.form
+    data = request.get_json()
     create_time = datetime.now()
     noofday = next_noofday(user)
-    content = form['content']
+    content = data['content']
 
     conflict = True
 
