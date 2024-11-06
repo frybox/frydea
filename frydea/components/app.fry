@@ -96,7 +96,9 @@ def EditorCard(card):
   <template>
     <div w-full min-h-200px mb-20px
          border border-gray-bdx rounded-md
-         flex flex-col>
+         flex flex-col
+         tabindex="-1"
+         @keydown=(handleKey)>
       <div flex-none h-30px w-full
            flex justify-between 
            bg-gray-el border border-gray-bdx>
@@ -120,12 +122,20 @@ def EditorCard(card):
     import { EditorState } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
-    import { vim, CodeMirror } from "@replit/codemirror-vim";
+    import { vim, CodeMirror, getCM, Vim } from "@replit/codemirror-vim";
     import { signal } from "fryhcs";
     import { setCard } from "./data.js";
     import { oneDark } from "@codemirror/theme-one-dark";
 
     let editor;
+
+    const handleKey = (e) => {
+      console.log(`e.key = ${e.key}`);
+      if (e.key === 'i') {
+        editor.focus();
+        e.preventDefault();
+      }
+    };
 
     const getTime = (card) => dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
 
@@ -236,6 +246,28 @@ def EditorCard(card):
           parent: elContent,
         });
       }
+      const cm = getCM(editor);
+      const vim = cm.state.vim;
+      CodeMirror.on(cm, 'inputEvent', (e) => {
+        if (e.type === 'handleKey') {
+          console.log(`handleKey input event with ${e.key}`);
+          //if (vim && !vim.insertMode && !vim.visualMode && e.key === '<Esc>') {
+          //  cm.blur();
+          //}
+        }
+      });
+      CodeMirror.on(cm, 'vim-keypress', (key) => {
+        console.log(`vim-keypress ${key}`);
+      })
+
+      Vim.defineAction('toCardMode', (cm, args) => {
+        console.log('blurblur');
+        console.log(cm.cm6.dom);
+        cm.cm6.dom.parentElement.parentElement.focus();
+        //cm.cm6.scrollDOM.focus();
+      });
+      Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
+
       editor.focus();
     }
 
@@ -251,7 +283,8 @@ def PreviewCard(card):
   <template>
     <div w-full min-h-200px mb-20px
          border border-gray-bdx rounded-md
-         flex flex-col>
+         flex flex-col
+         tabindex="-1">
       <div flex-none h-30px w-full
            flex justify-between 
            bg-gray-el border border-gray-bdx>
