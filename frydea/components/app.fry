@@ -70,35 +70,96 @@ def Preview():
 
 def Content(cards=None):
   cards = cards if cards else []
-  card = CardModel()
-  card.update_time = datetime.now()
+  empty_card = CardModel()
+  empty_card.update_time = datetime.now()
   <template>
-    <div ref=(container) bg-primary-elx box-border h-full overflow-auto>
-      <EditorCard frytemplate ref=(template) {card} />
-      {<EditorCard {card}/> for card in cards}
+    <div ref=(container)
+         bg-primary-elx box-border h-full overflow-auto
+         tabindex="-1"
+         @keydown=(handleCardKey)>
+      <EditorCard frytemplate ref=(template) card={empty_card} />
+      {<EditorCard refall=(editorCards) {card}/> for card in cards}
       <div ref=(oparea) w-full text-center mt-30px>
-        <Button @click=(onclick) wide info>
+        <Button @click=(newCard) wide info>
           <Icon type="plus" class="h-8 w-8"/>
         </Button>
       </div>
     </div>
   </template>
   <script>
-    const onclick = async () => {
+    import { signal, effect } from 'fryhcs';
+
+    let currentCard = signal(editorCards.length > 0 ? editorCards[editorCards.length-1] : null);
+
+    effect(() => {
+      const current = currentCard.value;
+      for (const card of editorCards) {
+        if (card == current) {
+          card.setFocusStyle('card');
+        } else {
+          card.setFocusStyle('none');
+        }
+      }
+    });
+
+    const newCard = async () => {
         const newcard = await template.generate();
-        newcard.createEditor();
         container.insertBefore(newcard.domElement, oparea);
+        editorCards.push(newcard);
+        currentCard.value = newcard;
+    };
+    const handleCardKey = (e) => {
+      console.log(`e.key = ${e.key}`);
+      if (e.target !== container) {
+        return;
+      }
+      const toCommandMode = () => {
+        if (currentCard.peek()) {
+          currentCard.peek().toCommandMode();
+          e.preventDefault();
+        }
+      };
+      const moveDown = () => {
+        console.log(e.target.nextElementSibling);
+        const index = editorCards.indexOf(currentCard.peek());
+        if (index >= 0 && index+1 < editorCards.length) {
+          currentCard.value = editorCards[index+1];
+        }
+      }
+      const moveUp = () => {
+        const index = editorCards.indexOf(currentCard.peek());
+        if (index > 0) {
+          currentCard.value = editorCards[index-1];
+        }
+      }
+      const moveLeft = () => {
+        console.log(e.target);
+      }
+      const moveRight = () => {
+        console.log(e.target);
+      }
+      const cardKeyMap = {
+        i: toCommandMode,
+        j: moveDown,
+        k: moveUp,
+        h: moveLeft,
+        l: moveRight,
+      }
+      if (e.key in cardKeyMap) {
+        cardKeyMap[e.key]();
+      }
     };
   </script>
 
 def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
+  style_editor = ['outline', 'outline-2', 'outline-primaryax']
+  style_card = ['outline', 'outline-4', 'outline-primaryax']
   <template>
-    <div w-full min-h-200px mb-20px
+    <div mx-4px w-sub,100%,8px min-h-200px mb-20px
          border border-gray-bdx rounded-md
          flex flex-col
-         tabindex="-1"
-         @keydown=(handleKey)>
+         ref=(elContainer)>
       <div flex-none h-30px w-full
            flex justify-between 
            bg-gray-el border border-gray-bdx>
@@ -110,32 +171,25 @@ def EditorCard(card):
       </div>
       <div ref=(elContent)
            flex-auto w-full
-           bg-secondary-bg overflow-hidden>
+           bg-secondary-bg overflow-hidden
+           @focusin=(onfocusin)>
       </div>
       <div flex-none w-full h-30px
            bg-gray-el border border-gray-bdx>
       </div>
     </div>
   </template>
-  <script card={card.todict()}>
+  <script card={card.todict()} {style_editor} {style_card}>
     import dayjs from "dayjs";
     import { EditorState } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
-    import { vim, CodeMirror, getCM, Vim } from "@replit/codemirror-vim";
+    import { vim, CodeMirror} from "@replit/codemirror-vim";
     import { signal } from "fryhcs";
-    import { setCard } from "./data.js";
+    import { setCard } from "./frydea.js";
     import { oneDark } from "@codemirror/theme-one-dark";
 
     let editor;
-
-    const handleKey = (e) => {
-      console.log(`e.key = ${e.key}`);
-      if (e.key === 'i') {
-        editor.focus();
-        e.preventDefault();
-      }
-    };
 
     const getTime = (card) => dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
 
@@ -246,33 +300,36 @@ def EditorCard(card):
           parent: elContent,
         });
       }
-      const cm = getCM(editor);
-      const vim = cm.state.vim;
-      CodeMirror.on(cm, 'inputEvent', (e) => {
-        if (e.type === 'handleKey') {
-          console.log(`handleKey input event with ${e.key}`);
-          //if (vim && !vim.insertMode && !vim.visualMode && e.key === '<Esc>') {
-          //  cm.blur();
-          //}
-        }
-      });
-      CodeMirror.on(cm, 'vim-keypress', (key) => {
-        console.log(`vim-keypress ${key}`);
-      })
-
-      Vim.defineAction('toCardMode', (cm, args) => {
-        console.log('blurblur');
-        console.log(cm.cm6.dom);
-        cm.cm6.dom.parentElement.parentElement.focus();
-        //cm.cm6.scrollDOM.focus();
-      });
-      Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
 
       editor.focus();
     }
 
+    createEditor();
+
+    const setFocusStyle = (style) => {
+      const removeStyle = (ss) => { ss.forEach(s => elContainer.classList.remove(s)) };
+      const addStyle = (ss) => { ss.forEach(s => elContainer.classList.add(s)) };
+      if (style === 'none') {
+        removeStyle(style_editor);
+        removeStyle(style_card);
+      } else if (style === 'editor') {
+        removeStyle(style_card);
+        addStyle(style_editor);
+      } else if (style === 'card') {
+        removeStyle(style_editor);
+        addStyle(style_card);
+      }
+    }
+
+    const onfocusin = () => {setFocusStyle('editor')};
+
+    const toCommandMode = () => {
+      editor.focus();
+    }
+
     export default {
-      createEditor,
+      setFocusStyle,
+      toCommandMode,
     }
   </script>
 
@@ -306,7 +363,7 @@ def PreviewCard(card):
   <script {cardId}>
     import * as dayjs from "dayjs";
     import { marked } from "marked";
-    import { getCard } from "./data.js";
+    import { getCard } from "./frydea.js";
     import { effect } from "fryhcs";
 
     let current = getCard(cardId);
