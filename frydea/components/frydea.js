@@ -5,7 +5,7 @@ import { Vim } from "@replit/codemirror-vim";
 Vim.defineAction('toCardMode', (cm, args) => {
   // 将焦点从CM编辑器挪到EditorCard元素身上
   // TODO 当前这种直接假定EditorCard DOM树结构的办法不太完美
-  cm.cm6.dom.parentElement.parentElement.parentElement.focus();
+  cm.cm6.dom.parentElement.parentElement.focus();
 });
 Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
 

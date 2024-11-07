@@ -93,7 +93,6 @@ def update_card(card_number):
         }
     if content != card.content:
         version = Version(card_id=card.id,
-                          name=card.name,
                           content=card.content,
                           version=card.version,
                           update_time=card.update_time)

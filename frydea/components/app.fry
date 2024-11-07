@@ -75,7 +75,6 @@ def Content(cards=None):
   <template>
     <div ref=(container)
          bg-primary-elx box-border h-full overflow-auto
-         tabindex="-1"
          @keydown=(handleCardKey)>
       <EditorCard frytemplate ref=(template) card={empty_card} />
       {<EditorCard refall=(editorCards) {card}/> for card in cards}
@@ -87,78 +86,82 @@ def Content(cards=None):
     </div>
   </template>
   <script>
-    import { signal, effect } from 'fryhcs';
-
-    let currentCard = signal(editorCards.length > 0 ? editorCards[editorCards.length-1] : null);
-
-    effect(() => {
-      const current = currentCard.value;
-      for (const card of editorCards) {
-        if (card == current) {
-          card.setFocusStyle('card');
-        } else {
-          card.setFocusStyle('none');
-        }
-      }
-    });
-
     const newCard = async () => {
         const newcard = await template.generate();
         container.insertBefore(newcard.domElement, oparea);
         editorCards.push(newcard);
-        currentCard.value = newcard;
+        newcard.focus();
     };
     const handleCardKey = (e) => {
-      console.log(`e.key = ${e.key}`);
-      if (e.target !== container) {
+      console.log(e);
+      if (!e.target.fryComponents) {
         return;
       }
+      let currentCard = e.target.fryComponents[0];
       const toCommandMode = () => {
-        if (currentCard.peek()) {
-          currentCard.peek().toCommandMode();
-          e.preventDefault();
-        }
+        currentCard.toCommandMode();
+        e.preventDefault();
       };
       const moveDown = () => {
-        console.log(e.target.nextElementSibling);
-        const index = editorCards.indexOf(currentCard.peek());
+        const index = editorCards.indexOf(currentCard);
         if (index >= 0 && index+1 < editorCards.length) {
-          currentCard.value = editorCards[index+1];
+          currentCard = editorCards[index+1];
+          currentCard.focus();
         }
       }
       const moveUp = () => {
-        const index = editorCards.indexOf(currentCard.peek());
+        const index = editorCards.indexOf(currentCard);
         if (index > 0) {
-          currentCard.value = editorCards[index-1];
+          currentCard = editorCards[index-1];
+          currentCard.focus();
         }
       }
       const moveLeft = () => {
-        console.log(e.target);
+        console.log('moveLeft');
       }
       const moveRight = () => {
-        console.log(e.target);
+        console.log('moveRight');
+      }
+      const deleteCard = (confirm) => {
+        if (confirm) {
+          
+        }
+        console.log('deleteCard');
       }
       const cardKeyMap = {
+        Enter: toCommandMode,
         i: toCommandMode,
         j: moveDown,
+        ArrowDown: moveDown,
         k: moveUp,
+        ArrowUp: moveUp,
         h: moveLeft,
+        ArrowLeft: moveLeft,
         l: moveRight,
+        ArrowRight: moveRight,
+        a: newCard,
+        d: () => {deleteCard(true)},
+        D: () => {deleteCard(false)},
       }
       if (e.key in cardKeyMap) {
         cardKeyMap[e.key]();
       }
     };
+
+    if (editorCards.length > 0) {
+      editorCards[editorCards.length-1].focus();
+    }
   </script>
 
 def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
-  style_editor = ['outline', 'outline-2', 'outline-primaryax']
-  style_card = ['outline', 'outline-4', 'outline-primaryax']
   <template>
     <div mx-4px w-sub,100%,8px min-h-200px mb-20px
          border border-gray-bdx rounded-md
+         focus="outline outline-4 outline-primaryax"
+         has-focus="outline outline-2 outline-primaryax"
          flex flex-col
+         tabindex="-1"
          ref=(elContainer)>
       <div flex-none h-30px w-full
            flex justify-between 
@@ -171,15 +174,14 @@ def EditorCard(card):
       </div>
       <div ref=(elContent)
            flex-auto w-full
-           bg-secondary-bg overflow-hidden
-           @focusin=(onfocusin)>
+           bg-secondary-bg overflow-hidden>
       </div>
       <div flex-none w-full h-30px
            bg-gray-el border border-gray-bdx>
       </div>
     </div>
   </template>
-  <script card={card.todict()} {style_editor} {style_card}>
+  <script card={card.todict()}>
     import dayjs from "dayjs";
     import { EditorState } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
@@ -300,36 +302,21 @@ def EditorCard(card):
           parent: elContent,
         });
       }
-
-      editor.focus();
     }
 
     createEditor();
-
-    const setFocusStyle = (style) => {
-      const removeStyle = (ss) => { ss.forEach(s => elContainer.classList.remove(s)) };
-      const addStyle = (ss) => { ss.forEach(s => elContainer.classList.add(s)) };
-      if (style === 'none') {
-        removeStyle(style_editor);
-        removeStyle(style_card);
-      } else if (style === 'editor') {
-        removeStyle(style_card);
-        addStyle(style_editor);
-      } else if (style === 'card') {
-        removeStyle(style_editor);
-        addStyle(style_card);
-      }
-    }
-
-    const onfocusin = () => {setFocusStyle('editor')};
 
     const toCommandMode = () => {
       editor.focus();
     }
 
+    const focus = () => {
+      elContainer.focus();
+    }
+
     export default {
-      setFocusStyle,
       toCommandMode,
+      focus,
     }
   </script>
 
