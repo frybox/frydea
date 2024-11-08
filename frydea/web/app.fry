@@ -44,7 +44,7 @@ def Main(cards=None):
   <template>
     <div box-border w-sub,100%,30px mx-auto h-full bg-gray-bg>
       <HCenter {left} {right}>
-        <Content {cards} width="3fr" />
+        <Edit {cards} width="3fr" />
       </HCenter>
     </div>
   </template>
@@ -68,7 +68,7 @@ def Preview():
   <script>
   </script>
 
-def Content(cards=None):
+def Edit(cards=None):
   cards = cards if cards else []
   empty_card = CardModel()
   empty_card.update_time = datetime.now()
@@ -90,7 +90,7 @@ def Content(cards=None):
         const newcard = await template.generate();
         container.insertBefore(newcard.domElement, oparea);
         editorCards.push(newcard);
-        newcard.focus();
+        newcard.toCommandMode();
     };
     const handleCardKey = (e) => {
       console.log(e);
@@ -168,9 +168,9 @@ def EditorCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p>[{card.number}](numberSignal)</p>
+          <p>[{card.number}](cardModel.number)</p>
         </div>
-        <p>[{time}](timeSignal)</p>
+        <p>[{time}](cardModel.updateTime)</p>
       </div>
       <div ref=(elContent)
            flex-auto w-full
@@ -182,30 +182,22 @@ def EditorCard(card):
     </div>
   </template>
   <script card={card.todict()}>
-    import dayjs from "dayjs";
     import { EditorState } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
     import { vim, CodeMirror} from "@replit/codemirror-vim";
-    import { signal } from "fryhcs";
-    import { setCard } from "./frydea.js";
+    import { createCardModel } from "./frydea.js";
     import { oneDark } from "@codemirror/theme-one-dark";
 
     let editor;
 
-    const getTime = (card) => dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
-
-    const numberSignal = signal(card.number);
-    const timeSignal = signal(getTime(card));
-    const contentSignal = signal(card.content);
-    let version = card.version;
+    const cardModel = createCardModel(card);
 
     CodeMirror.commands.save = async () => {
       const baseUrl = window.location.origin;
-      const content = contentSignal.peek()
-      let returned;
-      if (numberSignal.peek()) {
-        const url = baseUrl + `/cards/${numberSignal.peek()}`;
+      const content = cardModel.content.peek()
+      if (cardModel.number.peek()) {
+        const url = baseUrl + `/cards/${cardModel.number.peek()}`;
         const data = {
           content: content,
           last_version: version,
@@ -220,7 +212,7 @@ def EditorCard(card):
         const result = await response.json();
         if (result.code === 0) {
           console.log('saved');
-          returned = result.card;
+          cardModel.update(result.card);
         } else {
           console.log(result.msg);
         }
@@ -236,22 +228,17 @@ def EditorCard(card):
         const result = await response.json();
         if (result.code === 0) {
           console.log('saved');
-          returned = result.card;
+          cardModel.update(result.card);
         } else {
           console.log(result.msg);
         }
-      }
-      if (returned) {
-        numberSignal.value = returned.number;
-        timeSignal.value = getTime(returned);
-        version = returned.version;
       }
     };
 
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
-          if (update.changes) {
-              contentSignal.value = editor.state.doc.toString();
+          if (update.docChanged) {
+              cardModel.content.value = update.state.doc.toString();
           }
       });
       const frytheme = EditorView.theme({
@@ -277,7 +264,7 @@ def EditorCard(card):
         }, {dark: true})
 
       const state = EditorState.create({
-        doc: contentSignal.peek(),
+        doc: cardModel.content.peek(),
         extensions: [
           vim(),
           basicSetup,
@@ -285,7 +272,7 @@ def EditorCard(card):
           EditorView.lineWrapping,
           updator,
           frytheme,
-          oneDark,
+          //oneDark,
         ]
       })
       return state;

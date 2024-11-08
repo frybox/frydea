@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import abort, request
 from fryhcs import html, render
 from frydea import app
-from frydea.components import App
+from frydea.web import App
 from frydea.database import db
 from frydea.models import Card, User, Version
 from sqlalchemy import desc
@@ -102,6 +102,18 @@ def update_card(card_number):
         db.session.add(version)
         db.session.add(card)
         db.session.commit()
+    return {
+        'code': 0,
+        'card': card.todict(),
+    }
+
+@app.get('/cards/<card_number>')
+def get_card(card_number):
+    user = get_user()
+    query = db.select(Card).where(Card.user_id == user.id, Card.number == card_number)
+    card = db.session.scalars(query).first()
+    if not card:
+        abort(404)
     return {
         'code': 0,
         'card': card.todict(),
