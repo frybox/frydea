@@ -87,17 +87,17 @@ def Edit(cards=None):
   </template>
   <script>
     const newCard = async () => {
-        const newcard = await template.generate();
-        container.insertBefore(newcard.domElement, oparea);
+        const newcard = await template.create();
+        container.insertBefore(newcard.fryelement, oparea);
         editorCards.push(newcard);
         newcard.toCommandMode();
     };
     const handleCardKey = (e) => {
       console.log(e);
-      if (!e.target.fryComponents) {
+      if (!e.target.frycomponents) {
         return;
       }
-      let currentCard = e.target.fryComponents[0];
+      let currentCard = e.target.frycomponents[0];
       const toCommandMode = () => {
         currentCard.toCommandMode();
         e.preventDefault();
@@ -122,29 +122,36 @@ def Edit(cards=None):
       const moveRight = () => {
         console.log('moveRight');
       }
-      const deleteCard = (confirm) => {
-        if (confirm) {
+      const deleteCard = (force) => {
+        if (!force) {
           
         }
         console.log('deleteCard');
       }
+      const broaden = () => {
+        this.fryparent.broaden();
+      }
+      const narrow = () => {
+        this.fryparent.narrow();
+      }
       const cardKeyMap = {
         Enter: toCommandMode,
-        i: toCommandMode,
-        j: moveDown,
+        KeyI: toCommandMode,
+        KeyJ: moveDown,
         ArrowDown: moveDown,
-        k: moveUp,
+        KeyK: moveUp,
         ArrowUp: moveUp,
-        h: moveLeft,
+        KeyH: moveLeft,
         ArrowLeft: moveLeft,
-        l: moveRight,
+        KeyL: moveRight,
         ArrowRight: moveRight,
-        a: newCard,
-        d: () => {deleteCard(true)},
-        D: () => {deleteCard(false)},
+        KeyA: newCard,
+        KeyD: () => {deleteCard(e.shiftKey)},
+        KeyB: broaden,
+        KeyN: narrow,
       }
-      if (e.key in cardKeyMap) {
-        cardKeyMap[e.key]();
+      if (e.code in cardKeyMap) {
+        cardKeyMap[e.code]();
       }
     };
 
@@ -194,46 +201,8 @@ def EditorCard(card):
     const cardModel = createCardModel(card);
 
     CodeMirror.commands.save = async () => {
-      const baseUrl = window.location.origin;
-      const content = cardModel.content.peek()
-      if (cardModel.number.peek()) {
-        const url = baseUrl + `/cards/${cardModel.number.peek()}`;
-        const data = {
-          content: content,
-          last_version: version,
-        }
-        const response = await fetch(url, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-        const result = await response.json();
-        if (result.code === 0) {
-          console.log('saved');
-          cardModel.update(result.card);
-        } else {
-          console.log(result.msg);
-        }
-      } else {
-        const url = baseUrl + '/cards';
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({content}),
-        });
-        const result = await response.json();
-        if (result.code === 0) {
-          console.log('saved');
-          cardModel.update(result.card);
-        } else {
-          console.log(result.msg);
-        }
-      }
-    };
+      await cardModel.save();
+    }
 
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
@@ -293,17 +262,12 @@ def EditorCard(card):
 
     createEditor();
 
-    const toCommandMode = () => {
+    this.toCommandMode = () => {
       editor.focus();
     }
 
-    const focus = () => {
+    this.focus = () => {
       elContainer.focus();
-    }
-
-    export default {
-      toCommandMode,
-      focus,
     }
   </script>
 
@@ -342,10 +306,9 @@ def PreviewCard(card):
 
     let current = getCard(cardId);
 
-    const dispose = effect(() => {
+    this.dispose = effect(() => {
       elContent.innerHTML = marked(current.content.value);
       elUpdateTime.textContent = dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
     });
 
-    export default { dispose };
   </script>

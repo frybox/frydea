@@ -57,7 +57,7 @@ class CardModel {
   // 将模型内容保存到服务器，如果是新建模型，在服务器新建卡片，
   // 如果是已有模型，更新服务器卡片的内容。
   async save() {
-    if (!this.isDirty.value)
+    if (!this.isDirty.peek())
       return;
     const baseUrl = window.location.origin;
     const content = this.content.peek();
