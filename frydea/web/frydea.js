@@ -9,28 +9,42 @@ Vim.defineAction('toCardMode', (cm, args) => {
 });
 Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
 
-const cards = [];
+// 服务器上所有没被删除的该用户的卡片id列表
+let cids = [];
+// 与上述卡片id列表对应的最大changelog id
+let clid = 0;
+// 未保存到服务器上的卡片（cid=0，version=0）
+const drafts = [];
+// 卡片ID到卡片的映射(只有服务器上存在的卡片)
 const cardMap = {};
 
 const getTime = (updateTime) => dayjs(updateTime).format('YYYY-MM-DD HH:mm');
 
 class CardModel {
   constructor(card) {
-    const {number='', content='', version=0, updateTime=new Date()} = card;
-    this.number = signal(version ? number : '');
+    const {cid=0, version=0, content='', updateTime=new Date()} = card;
+    this.cid = cid;
+    this.version = version;
     this.content = signal(content);
-    this.updateTime = signal(getTime(updateTime));
-    this.serverContent = version ? content : '';
-    this.serverVersion = version;
-    this.isDirty = computed(() => this.serverVersion === 0 || this.serverContent !== this.content.value);
+    this.updateTime = signal(updateTime);
+    this.serverContent = cid ? content : '';
+    this.displayTime = computed(() => getTime(this.updateTime));
   
+  }
+
+  get isDraft() {
+    return this.cid === 0 && this.version === 0;
+  }
+
+  get isDirty() {
+    return this.isDraft || this.serverContent !== this.content.peek();
   }
 
   // 从UI更新卡片内容到模型中，导致该模型变脏，需要调用save()保存到服务器上
   update(card) {
     const { content, updateTime=new Date() } = card;
     this.content.value = content;
-    this.updateTime.value = getTime(updateTime);
+    this.updateTime.value = updateTime;
   }
 
   // 从服务器更新卡片内容到模型中，会刷新模型内容，让模型变干净
@@ -41,12 +55,11 @@ class CardModel {
   // 从服务器更新卡片内容到模型中，如果flush为false，则只是将
   // 服务器中的内容保存下来，不会修改真正模型的内容，有可能导致模型变脏。
   async fetch(flush=false) {
-    const number = this.number.peek();
-    if (!number) {
-      throw `Can't fetch for unsaved card`
+    if (this.isDraft) {
+      throw `Can't fetch for draft card`
     }
     const baseUrl = window.location.origin;
-    const url = `${baseUrl}/cards/${number}`;
+    const url = `${baseUrl}/cards/${this.cid}`;
     const response = await fetch(url);
     const result = await response.json();
     if (result.code === 0) {
@@ -57,16 +70,15 @@ class CardModel {
   // 将模型内容保存到服务器，如果是新建模型，在服务器新建卡片，
   // 如果是已有模型，更新服务器卡片的内容。
   async save() {
-    if (!this.isDirty.peek())
+    if (!this.isDirty)
       return;
     const baseUrl = window.location.origin;
     const content = this.content.peek();
-    const number = this.number.peek();
-    if (number) {
-      const url = baseUrl + `/cards/${number}`;
+    if (this.cid) {
+      const url = baseUrl + `/cards/${this.cid}`;
       const data = {
         content,
-        last_version: this.serverVersion,
+        last_version: this.version,
       }
       const response = await fetch(url, {
         method: 'PUT',
@@ -103,28 +115,26 @@ class CardModel {
 
   // 内部方法，load/fetch/save时，根据服务器响应修改模型内容
   serverUpdate(card, flush=false) {
-    const { number, content, version, updateTime } = card;
-    this.number.value = number;
-    this.serverVersion = version;
+    const { content, version, updateTime } = card;
+    this.version = version;
     this.serverContent = content;
     if (flush) {
       this.content.value = content;
-      this.updateTime.value = getTime(updateTime);
+      this.updateTime.value = updateTime;
     }
   }
 }
 
 const createCardModel = (card) => {
-  const { number, version } = card;
+  const { cid, version } = card;
   let card1;
-  if (version === 0 || !(number in cardMap)) {
-    // 新卡片
+  if (cid === 0 || version === 0) {
+    // 新草稿卡片
     card1 = new CardModel(card);
     cards.push(card1);
-    if (number) cardMap[number] = card1;
   } else {
     // 已有卡片模型，无法创建
-    throw `card ${number} exists`;
+    throw `card ${cid} exists`;
   }
   return card1;
 }
