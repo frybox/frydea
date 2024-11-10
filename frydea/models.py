@@ -29,17 +29,17 @@ class Card(db.Model):
     __tablename__ = 'cards'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    content: Mapped[str] = mapped_column(comment='Markdown内容')
     version: Mapped[int] = mapped_column(comment='版本号')
+    content: Mapped[str] = mapped_column(comment='Markdown内容')
     update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
 
     user: Mapped['User'] = relationship(back_populates='cards')
-    versions: Mapped[List['Version']] = relationship(back_populates='card')
+    changelogs: Mapped[List['ChangeLog']] = relationship(back_populates='card')
 
-    def __init__(self, user_id=0, content='', version=0, update_time=None):
+    def __init__(self, user_id=0, version=0, content='', update_time=None):
         self.user_id = user_id
-        self.content = content
         self.version = version
+        self.content = content
         self.update_time = update_time if update_time else datetime.now()
 
     def __repr__(self):
@@ -55,20 +55,22 @@ class Card(db.Model):
         }
 
 
-class Version(db.Model):
-    __tablename__ = 'versions'
+class ChangeLog(db.Model):
+    __tablename__ = 'changelog'
     __table_args__ = (
         UniqueConstraint('card_id', 'version'),
     )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     card_id: Mapped[int] = mapped_column(ForeignKey('cards.id'))
     version: Mapped[int] = mapped_column(comment='版本号')
     content: Mapped[str] = mapped_column(comment='Markdown内容')
     update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
 
-    card: Mapped['Card'] = relationship(back_populates='versions')
+    card: Mapped['Card'] = relationship(back_populates='changelogs')
 
-    def __init__(self, card_id, version, content, update_time):
+    def __init__(self, user_id, card_id, version, content, update_time):
+        self.user_id = user_id
         self.card_id = card_id
         self.version = version
         self.content = content
@@ -79,6 +81,9 @@ class Version(db.Model):
 
 
 class ChangeLog(db.Model):
+    """
+    只增表
+    """
     __tablename__ = 'changelog'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))

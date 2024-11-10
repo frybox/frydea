@@ -59,7 +59,6 @@ def Index():
 
 def Preview():
   card = CardModel()
-  card.update_time = datetime.now()
   <template>
     <div box-border h-full bg-secondary-bgx overflow-auto>
       <PreviewCard frytemplate ref=(template) {card} />
@@ -71,7 +70,6 @@ def Preview():
 def Edit(cards=None):
   cards = cards if cards else []
   empty_card = CardModel()
-  empty_card.update_time = datetime.now()
   <template>
     <div ref=(container)
          bg-primary-elx box-border h-full overflow-auto
