@@ -20,7 +20,6 @@ class CardModel {
     this.updateTime = signal(updateTime);
     this.serverContent = cid ? content : '';
     this.displayTime = computed(() => getTime(this.updateTime));
-    cardManager.setCard(this);
   }
 
   get isDraft() {
@@ -70,6 +69,7 @@ class CardModel {
       const data = {
         content,
         last_version: this.version,
+        last_clid: cardManager.clid,
       }
       const response = await fetch(url, {
         method: 'PUT',
@@ -92,13 +92,13 @@ class CardModel {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({content}),
+        body: JSON.stringify({content, last_clid: cardManager.clid}),
       });
       const result = await response.json();
       if (result.code === 0) {
         console.log('server created');
         this.serverUpdate(result.card);
-        cardManager.setCard(this);
+        this.cardMap[this.cid] = this;
       } else {
         console.log(result.msg);
       }
@@ -131,23 +131,16 @@ class CardManager {
   }
 
   createCard(card) {
-    const { cid, version } = card;
-    let card1;
-    if (cid === 0 || version === 0) {
+    const { cid } = card;
+    let card1 = new CardModel(card);
+    if (cid === 0) {
       // 新草稿卡片
-      card1 = new CardModel(card);
       this.drafts.push(card1);
     } else {
-      // 已有卡片模型，无法创建
-      throw `card ${cid} exists`;
+      // 已有卡片模型
+      this.cardMap[cid] = card1;
     }
     return card1;
-  }
-
-  setCard(card) {
-    if (card.cid) {
-      this.cardMap[card.cid] = card;
-    }
   }
 
   getCard(cid) {

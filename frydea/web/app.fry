@@ -13,8 +13,9 @@ def App(cards=None, cids=None, clid=0):
     </div>
   </template>
   <script {cids} {clid}>
-    import { cids as gcids, clid as gclid } from './frydea.js';
-    gcids = cids
+    import { cardManager } from './frydea.js';
+    cardManager.cids = cids;
+    cardManager.clid = clid;
   </script>
 
 def Header():
@@ -89,6 +90,7 @@ def Edit(cards=None):
     </div>
   </template>
   <script>
+    editorCards = editorCards ? editorCards : [];
     const newCard = async () => {
         const newcard = await template.create();
         container.insertBefore(newcard.fryelement, oparea);
@@ -178,7 +180,7 @@ def EditorCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p>[{card.number}](cardModel.number)</p>
+          <p>[{card.id}](cardModel.cid)</p>
         </div>
         <p>[{time}](cardModel.updateTime)</p>
       </div>
@@ -196,12 +198,12 @@ def EditorCard(card):
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
     import { vim, CodeMirror} from "@replit/codemirror-vim";
-    import { createCardModel } from "./frydea.js";
+    import { cardManager } from "./frydea.js";
     import { oneDark } from "@codemirror/theme-one-dark";
 
     let editor;
 
-    const cardModel = createCardModel(card);
+    const cardModel = cardManager.createCard(card);
 
     CodeMirror.commands.save = async () => {
       await cardModel.save();
@@ -288,7 +290,7 @@ def PreviewCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p ref=(elNumber)>{card.number}</p>
+          <p ref=(elNumber)>{card.id}</p>
         </div>
         <p ref=(elUpdateTime)>{time}</p>
       </div>

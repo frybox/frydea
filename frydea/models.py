@@ -76,15 +76,4 @@ class ChangeLog(db.Model):
         self.update_time = update_time
 
     def __repr__(self):
-        return f'<Version {self.card_id!r}@{self.version}>'
-
-
-class ChangeLog(db.Model):
-    """
-    只增表
-    """
-    __tablename__ = 'changelog'
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    card_id: Mapped[int] = mapped_column(ForeignKey('cards.id'))
-    version: Mapped[int] = mapped_column(comment='版本号')
+        return f'<ChangeLog {self.card_id!r}@{self.version}>'

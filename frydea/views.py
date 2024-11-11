@@ -21,7 +21,7 @@ def index():
     query = db.select(Card).where(Card.user_id == user.id)
     query = query.order_by(desc(Card.id)).limit(10)
     cards = reversed(db.session.scalars(query).all())
-    query = db.select(Card.id).where(Card.user_id == user.id, Card.version > 0)
+    query = db.select(Card.id).where(Card.user_id == user.id)
     query = query.order_by(Card.id)
     cids = db.session.scalars(query).all()
     query = db.select(ChangeLog.id).order_by(desc(ChangeLog.id)).limit(1)
@@ -34,20 +34,27 @@ def create_card():
     user = get_user()
     data = request.get_json()
     content = data['content']
+    last_clid = data['last_clid']
     card = Card(user_id=user.id,
                 version=1,
                 content=content,
                 update_time=datetime.now())
     db.session.add(card)
     db.session.flush()
-    changelog = ChangeLog(card_id=card.id,
-                        content=card.content,
-                        version=card.version,
-                        update_time=card.update_time)
+    changelog = ChangeLog(user_id=user.id,
+                          card_id=card.id,
+                          version=card.version,
+                          content=card.content,
+                          update_time=card.update_time)
     db.session.add(changelog)
+    db.session.flush()
+    query = db.select(ChangeLog.card_id, ChangeLog.version)
+    query = query.where(ChangeLog.user_id == user.id, ChangeLog.id > last_clid)
+    query = query.order_by(ChangeLog.id)
     db.session.commit()
     return {
         'code': 0,
+        'clid': changelog.id,
         'card': card.todict()
     }
 
@@ -60,7 +67,8 @@ def update_card(cid):
         abort(404)
     data = request.get_json()
     content = data['content']
-    last_version = int(data['last_version'])
+    last_version = data['last_version']
+    last_clid = data['last_clid']
     if last_version > card.version:
         return {
             'code': 1,
@@ -77,12 +85,13 @@ def update_card(cid):
         card.content = content
         card.version = last_version + 1
         card.update_time = datetime.now()
-        changelog = ChangeLog(card_id=card.id,
-                          content=card.content,
-                          version=card.version,
-                          update_time=card.update_time)
-        db.session.add(changelog)
+        changelog = ChangeLog(user_id=user.id,
+                              card_id=card.id,
+                              version=card.version,
+                              content=card.content,
+                              update_time=card.update_time)
         db.session.add(card)
+        db.session.add(changelog)
         db.session.commit()
     return {
         'code': 0,
