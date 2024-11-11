@@ -22,71 +22,70 @@ class User(db.Model):
 
 
 class Card(db.Model):
+    """
+    版本号从1开始，第一个版本的update_time就是当前卡片的创建时间
+    删除也会生成一个版本号，最后的版本号，比上一个版本号加一，然后取负值
+    """
     __tablename__ = 'cards'
-    __table_args__ = (
-        UniqueConstraint('user_id', 'number'),
-    )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    number: Mapped[str]
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    create_time: Mapped[datetime] = mapped_column(comment='card创建时间')
-    noofday: Mapped[int] = mapped_column(comment='创建当天编号')
-    content: Mapped[str] = mapped_column(comment='Markdown内容')
     version: Mapped[int] = mapped_column(comment='版本号')
+    content: Mapped[str] = mapped_column(comment='Markdown内容')
     update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
 
     user: Mapped['User'] = relationship(back_populates='cards')
-    versions: Mapped[List['Version']] = relationship(back_populates='card')
+    changelogs: Mapped[List['ChangeLog']] = relationship(back_populates='card')
 
-    def __init__(self, user_id=0, create_time=None, noofday=0, number='', content='', version=0, update_time=None):
+    def __init__(self, user_id=0, version=0, content='', update_time=None):
         self.user_id = user_id
-        self.create_time = create_time if create_time else datetime.now()
-        self.noofday = noofday
-        self.content = content
         self.version = version
-        self.update_time = update_time if update_time else self.create_time
-        self.number = number if number else self.card_number()
+        self.content = content
+        self.update_time = update_time if update_time else datetime.now()
 
     def __repr__(self):
         return f'<Card {self.number!r}>'
 
-    def card_number(self):
-        t = self.create_time
-        no = self.noofday
-        if t and no:
-            return f'{t.year:04}-{t.month:02}-{t.day:02}-{no:04}'
-        else:
-            return ''
-    
     def todict(self):
         return {
-            'number': self.number,
+            'id': self.id,
             'user_id': self.user_id,
-            'create_time': self.create_time.isoformat() if self.create_time else '',
             'content': self.content,
             'version': self.version,
             'update_time': self.update_time.isoformat() if self.update_time else '',
         }
 
 
-class Version(db.Model):
-    __tablename__ = 'versions'
+class ChangeLog(db.Model):
+    __tablename__ = 'changelog'
     __table_args__ = (
         UniqueConstraint('card_id', 'version'),
     )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     card_id: Mapped[int] = mapped_column(ForeignKey('cards.id'))
-    content: Mapped[str] = mapped_column(comment='Markdown内容')
     version: Mapped[int] = mapped_column(comment='版本号')
+    content: Mapped[str] = mapped_column(comment='Markdown内容')
     update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
 
-    card: Mapped['Card'] = relationship(back_populates='versions')
+    card: Mapped['Card'] = relationship(back_populates='changelogs')
 
-    def __init__(self, card_id, content, version, update_time):
+    def __init__(self, user_id, card_id, version, content, update_time):
+        self.user_id = user_id
         self.card_id = card_id
-        self.content = content
         self.version = version
+        self.content = content
         self.update_time = update_time
 
     def __repr__(self):
         return f'<Version {self.card_id!r}@{self.version}>'
+
+
+class ChangeLog(db.Model):
+    """
+    只增表
+    """
+    __tablename__ = 'changelog'
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    card_id: Mapped[int] = mapped_column(ForeignKey('cards.id'))
+    version: Mapped[int] = mapped_column(comment='版本号')

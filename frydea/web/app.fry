@@ -59,7 +59,6 @@ def Index():
 
 def Preview():
   card = CardModel()
-  card.update_time = datetime.now()
   <template>
     <div box-border h-full bg-secondary-bgx overflow-auto>
       <PreviewCard frytemplate ref=(template) {card} />
@@ -71,7 +70,6 @@ def Preview():
 def Edit(cards=None):
   cards = cards if cards else []
   empty_card = CardModel()
-  empty_card.update_time = datetime.now()
   <template>
     <div ref=(container)
          bg-primary-elx box-border h-full overflow-auto
@@ -87,7 +85,7 @@ def Edit(cards=None):
   </template>
   <script>
     const newCard = async () => {
-        const newcard = await template.generate();
+        const newcard = await template.create();
         container.insertBefore(newcard.fryelement, oparea);
         editorCards.push(newcard);
         newcard.toCommandMode();
@@ -201,46 +199,8 @@ def EditorCard(card):
     const cardModel = createCardModel(card);
 
     CodeMirror.commands.save = async () => {
-      const baseUrl = window.location.origin;
-      const content = cardModel.content.peek()
-      if (cardModel.number.peek()) {
-        const url = baseUrl + `/cards/${cardModel.number.peek()}`;
-        const data = {
-          content: content,
-          last_version: version,
-        }
-        const response = await fetch(url, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-        const result = await response.json();
-        if (result.code === 0) {
-          console.log('saved');
-          cardModel.update(result.card);
-        } else {
-          console.log(result.msg);
-        }
-      } else {
-        const url = baseUrl + '/cards';
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({content}),
-        });
-        const result = await response.json();
-        if (result.code === 0) {
-          console.log('saved');
-          cardModel.update(result.card);
-        } else {
-          console.log(result.msg);
-        }
-      }
-    };
+      await cardModel.save();
+    }
 
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
@@ -300,16 +260,13 @@ def EditorCard(card):
 
     createEditor();
 
-    const toCommandMode = () => {
+    this.toCommandMode = () => {
       editor.focus();
     }
 
-    const focus = () => {
+    this.focus = () => {
       elContainer.focus();
     }
-
-    this.toCommandMode = toCommandMode
-    this.focus = focus
   </script>
 
 
@@ -351,4 +308,5 @@ def PreviewCard(card):
       elContent.innerHTML = marked(current.content.value);
       elUpdateTime.textContent = dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
     });
+
   </script>
