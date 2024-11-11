@@ -47,11 +47,10 @@ class Card(db.Model):
 
     def todict(self):
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'content': self.content,
+            'cid': self.id,
             'version': self.version,
-            'update_time': self.update_time.isoformat() if self.update_time else '',
+            'content': self.content,
+            'updateTime': self.update_time.isoformat() if self.update_time else '',
         }
 
 

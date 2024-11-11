@@ -29,45 +29,11 @@ def index():
     args = dict(cards=cards, cids=cids, clid=clid)
     return html(App, args=args, title='Frydea', autoreload=False)
 
-def next_noofday(user):
-    def sameday(dt1, dt2):
-        return (dt1.year == dt2.year and
-                dt1.month == dt2.month and
-                dt1.day == dt2.day)
-    query = db.select(Card).where(Card.user_id == user.id)
-    query = query.order_by(desc(Card.update_time)).limit(1)
-    card = db.session.scalars(query).first()
-    if not card:
-        return 1
-    else:
-        now = datetime.now()
-        if sameday(now, card.create_time):
-            return card.noofday + 1
-        else:
-            return 1
-
 @app.post('/cards')
 def create_card():
     user = get_user()
     data = request.get_json()
-    create_time = datetime.now()
-    noofday = next_noofday(user)
     content = data['content']
-
-    conflict = True
-
-    while conflict:
-        card = Card(user_id=user.id,
-                    create_time=create_time,
-                    noofday=noofday,
-                    content=content,
-                    version=1,
-                    update_time=create_time)
-        query = db.select(Card).where(Card.user_id == user.id, Card.number == card.number)
-        if db.session.scalars(query).first():
-            noofday += 1
-        else:
-            conflict = False
     card = Card(user_id=user.id,
                 version=1,
                 content=content,
@@ -85,10 +51,10 @@ def create_card():
         'card': card.todict()
     }
 
-@app.put('/cards/<card_number>')
-def update_card(card_number):
+@app.put('/cards/<int:cid>')
+def update_card(cid):
     user = get_user()
-    query = db.select(Card).where(Card.user_id == user.id, Card.number == card_number)
+    query = db.select(Card).where(Card.user_id == user.id, Card.id == cid)
     card = db.session.scalars(query).first()
     if not card:
         abort(404)
@@ -123,10 +89,10 @@ def update_card(card_number):
         'card': card.todict(),
     }
 
-@app.get('/cards/<card_number>')
-def get_card(card_number):
+@app.get('/cards/<int:cid>')
+def get_card(cid):
     user = get_user()
-    query = db.select(Card).where(Card.user_id == user.id, Card.number == card_number)
+    query = db.select(Card).where(Card.user_id == user.id, Card.id == cid)
     card = db.session.scalars(query).first()
     if not card:
         abort(404)
@@ -138,7 +104,7 @@ def get_card(card_number):
 @app.get('/cards')
 def get_card_list():
     user = get_user()
-    query = db.select(Card).where(Card.user_id == user.id).order_by(Card.create_time)
+    query = db.select(Card).where(Card.user_id == user.id).order_by(Card.id)
     page = db.paginate(query)
     return {
         'code': 0,
@@ -151,10 +117,10 @@ def get_card_list():
         'cards': [card.todict() for card in page]
     }
 
-@app.delete('/cards/<card_number>')
-def delete_card(card_number):
+@app.delete('/cards/<int:cid>')
+def delete_card(cid):
     user = get_user()
-    query = db.select(Card).where(Card.user_id == user.id, Card.number == card_number)
+    query = db.select(Card).where(Card.user_id == user.id, Card.id == cid)
     card = db.session.scalars(query).first()
     if not card:
         abort(404)
