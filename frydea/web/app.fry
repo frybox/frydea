@@ -88,16 +88,16 @@ def Edit(cards=None):
   <script>
     const newCard = async () => {
         const newcard = await template.generate();
-        container.insertBefore(newcard.domElement, oparea);
+        container.insertBefore(newcard.fryelement, oparea);
         editorCards.push(newcard);
         newcard.toCommandMode();
     };
     const handleCardKey = (e) => {
       console.log(e);
-      if (!e.target.fryComponents) {
+      if (!e.target.frycomponents) {
         return;
       }
-      let currentCard = e.target.fryComponents[0];
+      let currentCard = e.target.frycomponents[0];
       const toCommandMode = () => {
         currentCard.toCommandMode();
         e.preventDefault();
@@ -122,29 +122,36 @@ def Edit(cards=None):
       const moveRight = () => {
         console.log('moveRight');
       }
-      const deleteCard = (confirm) => {
-        if (confirm) {
+      const deleteCard = (force=false) => {
+        if (!force) {
           
         }
         console.log('deleteCard');
       }
+      const broadenCard = () => {
+        this.fryparent.broaden();
+      }
+      const narrowCard = () => {
+        this.fryparent.narrow();
+      }
       const cardKeyMap = {
         Enter: toCommandMode,
-        i: toCommandMode,
-        j: moveDown,
+        KeyI: toCommandMode,
+        KeyJ: moveDown,
         ArrowDown: moveDown,
-        k: moveUp,
+        KeyK: moveUp,
         ArrowUp: moveUp,
-        h: moveLeft,
+        KeyH: moveLeft,
         ArrowLeft: moveLeft,
-        l: moveRight,
+        KeyL: moveRight,
         ArrowRight: moveRight,
-        a: newCard,
-        d: () => {deleteCard(true)},
-        D: () => {deleteCard(false)},
+        KeyA: newCard,
+        KeyD: () => {deleteCard(e.shiftKey)},
+        KeyB: broadenCard,
+        KeyN: narrowCard,
       }
-      if (e.key in cardKeyMap) {
-        cardKeyMap[e.key]();
+      if (e.code in cardKeyMap) {
+        cardKeyMap[e.code]();
       }
     };
 
@@ -301,10 +308,8 @@ def EditorCard(card):
       elContainer.focus();
     }
 
-    export default {
-      toCommandMode,
-      focus,
-    }
+    this.toCommandMode = toCommandMode
+    this.focus = focus
   </script>
 
 
@@ -342,10 +347,8 @@ def PreviewCard(card):
 
     let current = getCard(cardId);
 
-    const dispose = effect(() => {
+    this.dispose = effect(() => {
       elContent.innerHTML = marked(current.content.value);
       elUpdateTime.textContent = dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
     });
-
-    export default { dispose };
   </script>
