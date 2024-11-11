@@ -4,7 +4,7 @@ from fryhcs import html, render
 from frydea import app
 from frydea.web import App
 from frydea.database import db
-from frydea.models import Card, User, Version
+from frydea.models import Card, User, ChangeLog
 from sqlalchemy import desc
 
 def get_user():
@@ -19,9 +19,15 @@ def get_user():
 def index():
     user = get_user()
     query = db.select(Card).where(Card.user_id == user.id)
-    query = query.order_by(desc(Card.create_time)).limit(10)
+    query = query.order_by(desc(Card.id)).limit(10)
     cards = reversed(db.session.scalars(query).all())
-    return html(App, args={'cards': cards}, title='Frydea', autoreload=False)
+    query = db.select(Card.id).where(Card.user_id == user.id, Card.version > 0)
+    query = query.order_by(Card.id)
+    cids = db.session.scalars(query).all()
+    query = db.select(ChangeLog.id).order_by(desc(ChangeLog.id)).limit(1)
+    clid = db.session.scalars(query).first()
+    args = dict(cards=cards, cids=cids, clid=clid)
+    return html(App, args=args, title='Frydea', autoreload=False)
 
 def next_noofday(user):
     def sameday(dt1, dt2):
@@ -29,7 +35,7 @@ def next_noofday(user):
                 dt1.month == dt2.month and
                 dt1.day == dt2.day)
     query = db.select(Card).where(Card.user_id == user.id)
-    query = query.order_by(desc(Card.create_time)).limit(1)
+    query = query.order_by(desc(Card.update_time)).limit(1)
     card = db.session.scalars(query).first()
     if not card:
         return 1
@@ -62,7 +68,17 @@ def create_card():
             noofday += 1
         else:
             conflict = False
+    card = Card(user_id=user.id,
+                version=1,
+                content=content,
+                update_time=datetime.now())
     db.session.add(card)
+    db.session.flush()
+    changelog = ChangeLog(card_id=card.id,
+                        content=card.content,
+                        version=card.version,
+                        update_time=card.update_time)
+    db.session.add(changelog)
     db.session.commit()
     return {
         'code': 0,
@@ -92,14 +108,14 @@ def update_card(card_number):
             'card': card.todict(),
         }
     if content != card.content:
-        version = Version(card_id=card.id,
-                          content=card.content,
-                          version=card.version,
-                          update_time=card.update_time)
         card.content = content
         card.version = last_version + 1
         card.update_time = datetime.now()
-        db.session.add(version)
+        changelog = ChangeLog(card_id=card.id,
+                          content=card.content,
+                          version=card.version,
+                          update_time=card.update_time)
+        db.session.add(changelog)
         db.session.add(card)
         db.session.commit()
     return {

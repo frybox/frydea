@@ -3,14 +3,19 @@ from fryhcs import Element
 from fryui import HCenter, Icon, Button
 from frydea.models import Card as CardModel
 
-def App(cards=None):
+def App(cards=None, cids=None, clid=0):
   cards = [] if not cards else cards
+  cids = [] if not cids else cids
   <template>
     <div h-screen w-screen overflow-x-auto>
       <Header />
-      <Body {cards}/>
+      <Body {cards} />
     </div>
   </template>
+  <script {cids} {clid}>
+    import { cids as gcids, clid as gclid } from './frydea.js';
+    gcids = cids
+  </script>
 
 def Header():
   <template>
@@ -20,11 +25,11 @@ def Header():
   <script>
   </script>
 
-def Body(cards=None):
+def Body(cards):
   <template>
     <div flex mt-30px h-sub,100%,30px w-full>
       <SideBar/>
-      <Main {cards}/>
+      <Main {cards} />
     </div>
   </template>
   <script>
@@ -38,7 +43,7 @@ def SideBar():
   <script>
   </script>
 
-def Main(cards=None):
+def Main(cards):
   left = <Index />
   right = <Preview />
   <template>

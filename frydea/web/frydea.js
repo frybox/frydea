@@ -9,15 +9,6 @@ Vim.defineAction('toCardMode', (cm, args) => {
 });
 Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
 
-// 服务器上所有没被删除的该用户的卡片id列表
-let cids = [];
-// 与上述卡片id列表对应的最大changelog id
-let clid = 0;
-// 未保存到服务器上的卡片（cid=0，version=0）
-const drafts = [];
-// 卡片ID到卡片的映射(只有服务器上存在的卡片)
-const cardMap = {};
-
 const getTime = (updateTime) => dayjs(updateTime).format('YYYY-MM-DD HH:mm');
 
 class CardModel {
@@ -29,7 +20,7 @@ class CardModel {
     this.updateTime = signal(updateTime);
     this.serverContent = cid ? content : '';
     this.displayTime = computed(() => getTime(this.updateTime));
-  
+    cardManager.setCard(this);
   }
 
   get isDraft() {
@@ -107,6 +98,7 @@ class CardModel {
       if (result.code === 0) {
         console.log('server created');
         this.serverUpdate(result.card);
+        cardManager.setCard(this);
       } else {
         console.log(result.msg);
       }
@@ -115,7 +107,8 @@ class CardModel {
 
   // 内部方法，load/fetch/save时，根据服务器响应修改模型内容
   serverUpdate(card, flush=false) {
-    const { content, version, updateTime } = card;
+    const { cid, content, version, updateTime } = card;
+    this.cid = cid;
     this.version = version;
     this.serverContent = content;
     if (flush) {
@@ -125,25 +118,46 @@ class CardModel {
   }
 }
 
-const createCardModel = (card) => {
-  const { cid, version } = card;
-  let card1;
-  if (cid === 0 || version === 0) {
-    // 新草稿卡片
-    card1 = new CardModel(card);
-    cards.push(card1);
-  } else {
-    // 已有卡片模型，无法创建
-    throw `card ${cid} exists`;
+class CardManager {
+  constructor() {
+    // 服务器上所有没被删除的该用户的卡片id列表
+    this.cids = [];
+    // 与上述卡片id列表对应的最大changelog id
+    this.clid = 0;
+    // 未保存到服务器上的卡片（cid=0，version=0）
+    this.drafts = [];
+    // 卡片ID到卡片的映射(只有服务器上存在的卡片)
+    this.cardMap = {};
   }
-  return card1;
+
+  createCard(card) {
+    const { cid, version } = card;
+    let card1;
+    if (cid === 0 || version === 0) {
+      // 新草稿卡片
+      card1 = new CardModel(card);
+      this.drafts.push(card1);
+    } else {
+      // 已有卡片模型，无法创建
+      throw `card ${cid} exists`;
+    }
+    return card1;
+  }
+
+  setCard(card) {
+    if (card.cid) {
+      this.cardMap[card.cid] = card;
+    }
+  }
+
+  getCard(cid) {
+    return this.cardMap[cid];
+  }
+
 }
 
-const getCardModel = (number) => {
-  return cardMap[number];
-}
+const cardManager = new CardManager();
 
 export {
-  createCardModel,
-  getCardModel,
+  cardManager,
 }
