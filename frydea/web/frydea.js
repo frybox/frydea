@@ -9,21 +9,23 @@ Vim.defineAction('toCardMode', (cm, args) => {
 });
 Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
 
-const getTime = (updateTime) => dayjs(updateTime).format('YYYY-MM-DD HH:mm');
+const getTime = (updateTime) => dayjs(new Date(updateTime)).format('YYYY-MM-DD HH:mm');
 
 class CardModel {
   constructor(card) {
     const {cid=0, version=0, content='', updateTime=new Date()} = card;
-    this.cid = cid;
-    this.version = version;
+    this.cid = cid ? cid : 0;
+    this.version = version ? version : 0;
     this.content = signal(content);
     this.updateTime = signal(updateTime);
     this.serverContent = cid ? content : '';
-    this.displayTime = computed(() => getTime(this.updateTime));
+    this.displayCid = signal(cid)
+    this.displayTime = computed(() => getTime(this.updateTime.value));
+    this.conflict = false;
   }
 
   get isDraft() {
-    return this.cid === 0 && this.version === 0;
+    return this.cid === 0;
   }
 
   get isDirty() {
@@ -49,11 +51,12 @@ class CardModel {
       throw `Can't fetch for draft card`
     }
     const baseUrl = window.location.origin;
-    const url = `${baseUrl}/cards/${this.cid}`;
+    const url = `${baseUrl}/cards/${this.cid}?last_clid=${cardManager.clid}`;
     const response = await fetch(url);
     const result = await response.json();
     if (result.code === 0) {
       this.serverUpdate(result.card, flush);
+      cardManager.serverUpdate(result.clid, result.changes);
     }
   }
 
@@ -62,6 +65,9 @@ class CardModel {
   async save() {
     if (!this.isDirty)
       return;
+    if (this.conflict) {
+      throw "Can't save conflicting card"
+    }
     const baseUrl = window.location.origin;
     const content = this.content.peek();
     if (this.cid) {
@@ -82,6 +88,7 @@ class CardModel {
       if (result.code === 0) {
         console.log('server updated');
         this.serverUpdate(result.card);
+        cardManager.serverUpdate(result.clid, result.changes);
       } else {
         console.log(result.msg);
       }
@@ -98,7 +105,8 @@ class CardModel {
       if (result.code === 0) {
         console.log('server created');
         this.serverUpdate(result.card);
-        this.cardMap[this.cid] = this;
+        cardManager.publishCard(this);
+        cardManager.serverUpdate(result.clid, result.changes);
       } else {
         console.log(result.msg);
       }
@@ -108,7 +116,11 @@ class CardModel {
   // 内部方法，load/fetch/save时，根据服务器响应修改模型内容
   serverUpdate(card, flush=false) {
     const { cid, content, version, updateTime } = card;
+    if (version !== this.version + 1) {
+      throw `Invalid card ${cid} version: ${version} != ${this.version} + 1`;
+    }
     this.cid = cid;
+    this.displayCid.value = cid;
     this.version = version;
     this.serverContent = content;
     if (flush) {
@@ -116,12 +128,17 @@ class CardModel {
       this.updateTime.value = updateTime;
     }
   }
+
+  async merge() {
+    this.conflict = false;
+    await this.save();
+  }
 }
 
 class CardManager {
   constructor() {
     // 服务器上所有没被删除的该用户的卡片id列表
-    this.cids = [];
+    this.cids = new Set();
     // 与上述卡片id列表对应的最大changelog id
     this.clid = 0;
     // 未保存到服务器上的卡片（cid=0，version=0）
@@ -130,21 +147,85 @@ class CardManager {
     this.cardMap = {};
   }
 
-  createCard(card) {
-    const { cid } = card;
-    let card1 = new CardModel(card);
-    if (cid === 0) {
-      // 新草稿卡片
-      this.drafts.push(card1);
-    } else {
-      // 已有卡片模型
-      this.cardMap[cid] = card1;
+  publishCard(card) {
+    const index = this.drafts.indexOf(card);
+    if (index !== -1) {
+      this.drafts.splice(index, 1);
     }
-    return card1;
+    if (!card.isDraft) {
+      this.cardMap[card.cid] = card;
+    }
   }
 
-  getCard(cid) {
-    return this.cardMap[cid];
+  async loadCard(cid) {
+    if (cid <= 0) throw `Can't load card of id ${cid}`;
+    const card = this.createCard({cid});
+    await card.load();
+    return card;
+  }
+
+  createCard(card) {
+    const { cid } = card;
+    let cardModel = new CardModel(card);
+    if (cid === 0) {
+      // 新草稿卡片
+      this.drafts.push(cardModel);
+    } else {
+      // 已有卡片模型
+      this.cardMap[cid] = cardModel;
+    }
+    return cardModel;
+  }
+
+  async getCard(cid) {
+    if (cid > 0) {
+      if (cid in this.cardMap)
+        return this.cardMap[cid];
+      const card = await this.loadCard(cid);
+      return card;
+    } else {
+      cid = -cid;
+      if (cid <= this.drafts.length) {
+        return this.drafts[cid];
+      }
+    }
+  }
+
+  async serverUpdate(clid, changes) {
+    this.clid = clid;
+    const cids = Object.keys(changes)
+    if (cids.length === 0) {
+      return;
+    }
+    let changed = [];
+    let conflict = [];
+    for (const cid of cids) {
+      const version = changes[cid];
+      if (version < 0) {
+        this.cids.delete(cid);
+      } else {
+        this.cids.add(cid);
+      }
+      if (cid in this.cardMap) {
+        changed.push(this.cardMap[cid]);
+      }
+    }
+
+    for (const card of changed) {
+      if (!card.isDirty) {
+        await card.load();
+      } else {
+        await card.fetch();
+        if (card.isDirty) {
+          card.conflict = true;
+          conflict.push(card);
+        }
+      }
+    }
+
+    if (conflict.length > 0) {
+      console.log(`${conflict.length} cards conflict, please resolve first.`)
+    }
   }
 
 }

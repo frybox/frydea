@@ -6,6 +6,7 @@ from frydea.models import Card as CardModel
 def App(cards=None, cids=None, clid=0):
   cards = [] if not cards else cards
   cids = [] if not cids else cids
+  clid = clid if clid else 0
   <template>
     <div h-screen w-screen overflow-x-auto>
       <Header />
@@ -14,7 +15,7 @@ def App(cards=None, cids=None, clid=0):
   </template>
   <script {cids} {clid}>
     import { cardManager } from './frydea.js';
-    cardManager.cids = cids;
+    cardManager.cids = new Set(cids);
     cardManager.clid = clid;
   </script>
 
@@ -45,12 +46,12 @@ def SideBar():
   </script>
 
 def Main(cards):
-  left = <Index />
-  right = <Preview />
+  left = <Index ref=(indexArea) />
+  right = <Preview ref=(previewArea) />
   <template>
     <div box-border w-sub,100%,30px mx-auto h-full bg-gray-bg>
       <HCenter {left} {right}>
-        <Edit {cards} width="3fr" />
+        <Edit ref=(editArea) {cards} width="3fr" />
       </HCenter>
     </div>
   </template>
@@ -96,6 +97,7 @@ def Edit(cards=None):
         container.insertBefore(newcard.fryelement, oparea);
         editorCards.push(newcard);
         newcard.toCommandMode();
+        newcard.fryelement.scrollIntoView();
     };
     const handleCardKey = (e) => {
       console.log(e);
@@ -139,6 +141,16 @@ def Edit(cards=None):
       const narrowCard = () => {
         this.fryparent.narrow();
       }
+      const saveCard = async (all=false) => {
+        if (!all) {
+          await currentCard.save();
+        } else {
+          for (const card of editorCards) {
+            await card.save();
+          }
+          console.log(`all of ${editorCards.length} cards are saved.`);
+        }
+      }
       const cardKeyMap = {
         Enter: toCommandMode,
         KeyI: toCommandMode,
@@ -154,6 +166,7 @@ def Edit(cards=None):
         KeyD: () => {deleteCard(e.shiftKey)},
         KeyB: broadenCard,
         KeyN: narrowCard,
+        KeyW: () => {saveCard(e.shiftKey)},
       }
       if (e.code in cardKeyMap) {
         cardKeyMap[e.code]();
@@ -180,9 +193,9 @@ def EditorCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p>[{card.id}](cardModel.cid)</p>
+          <p>[{card.id}](cardModel.displayCid)</p>
         </div>
-        <p>[{time}](cardModel.updateTime)</p>
+        <p>[{time}](cardModel.displayTime)</p>
       </div>
       <div ref=(elContent)
            flex-auto w-full
@@ -274,6 +287,10 @@ def EditorCard(card):
     this.focus = () => {
       elContainer.focus();
     }
+
+    this.save = async () => {
+      await cardModel.save();
+    }
   </script>
 
 
@@ -306,14 +323,13 @@ def PreviewCard(card):
   <script {cardId}>
     import * as dayjs from "dayjs";
     import { marked } from "marked";
-    import { getCard } from "./frydea.js";
+    import { cardManager } from "./frydea.js";
     import { effect } from "fryhcs";
 
-    let current = getCard(cardId);
+    let current = await cardManager.getCard(cardId);
 
     this.dispose = effect(() => {
       elContent.innerHTML = marked(current.content.value);
-      elUpdateTime.textContent = dayjs(card.update_time).format('YYYY-MM-DD HH:mm');
+      elUpdateTime.textContent = current.displayTime.value;
     });
-
   </script>
