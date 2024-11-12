@@ -177,18 +177,25 @@ class CardManager {
     return cardModel;
   }
 
-  async getCard(cid) {
-    if (cid > 0) {
-      if (cid in this.cardMap)
-        return this.cardMap[cid];
-      const card = await this.loadCard(cid);
+  async getCard(cardId) {
+    if (cardId > 0) {
+      if (cardId in this.cardMap)
+        return this.cardMap[cardId];
+      const card = await this.loadCard(cardId);
       return card;
     } else {
-      cid = -cid;
-      if (cid <= this.drafts.length) {
-        return this.drafts[cid];
+      cardId = -cardId;
+      if (cardId < this.drafts.length) {
+        return this.drafts[cardId];
       }
     }
+  }
+
+  getCardId(card) {
+    if (card.cid > 0) return card.cid;
+    const cardId = this.drafts.indexOf(card);
+    if (cardId >= 0) return -cardId;
+    return null;
   }
 
   async serverUpdate(clid, changes) {

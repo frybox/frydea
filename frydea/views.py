@@ -125,7 +125,7 @@ def get_card(cid):
             'code': 0,
             'clid': clid,
             'changes': changes,
-            'card': card,
+            'card': card.todict(),
         }
     else:
         return {
