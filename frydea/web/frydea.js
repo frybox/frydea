@@ -141,11 +141,11 @@ class CardModel {
 
 class CardManager {
   constructor() {
-    // 服务器上所有没被删除的该用户的卡片id列表
+    // 服务器上所有没被删除的该用户的服务端卡片id(cid)列表
     this.cids = new Set();
     // 与上述卡片id列表对应的最大changelog id
     this.clid = 0;
-    // 卡片ID到卡片的映射(只有服务器上存在的卡片)
+    // 客户端卡片ID(cardId)到卡片的映射(只有服务器上存在的卡片)
     this.cardMap = {};
     this._nextCardId = 1;
   }
@@ -154,28 +154,18 @@ class CardManager {
     return this._nextCardId ++;
   }
 
-  async loadCard(cid) {
-    if (cid <= 0) throw `Can't load card of id ${cid}`;
-    const card = new CardModel({cid}, this);
-    await card.load();
-    return card;
-  }
-
   async createCard(c) {
+    const {cid, version} = c;
     const card = new CardModel(c, this);
-    await card.load();
+    if (cid > 0 && version === 0) {
+      // 只有服务端ID，但没有内容时，将该卡片从服务端加载过来
+      await card.load();
+    }
     return card;
   }
 
   getCard(cardId) {
     return this.cardMap[cardId];
-  }
-
-  getCardId(card) {
-    if (card.cid > 0) return card.cid;
-    const cardId = this.drafts.indexOf(card);
-    if (cardId >= 0) return -cardId;
-    return null;
   }
 
   async serverUpdate(clid, changes) {
@@ -214,7 +204,6 @@ class CardManager {
       console.log(`${conflict.length} cards conflict, please resolve first.`)
     }
   }
-
 }
 
 const cardManager = new CardManager();
