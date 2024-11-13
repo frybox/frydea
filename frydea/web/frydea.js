@@ -154,6 +154,11 @@ class CardManager {
     return this._nextCardId ++;
   }
 
+  // 如下三种情况调用该接口：
+  // 1. 当从服务端拿到卡片数据时(有cid/version/content/updateTime完整数据)
+  // 2. 只拿到服务端id(cid)，需要从服务端加载数据时(cid>0, version=0)
+  // 3. 前端创建新草稿卡片时（什么都没有，cid=0, version=0）
+  // 这三种情况下，都会在前端集中统一的状态中创建一个卡片模型对象，所有前端UI都使用该对象
   async createCard(c) {
     const {cid, version} = c;
     const card = new CardModel(c, this);
@@ -164,6 +169,8 @@ class CardManager {
     return card;
   }
 
+  // 当已经在前端集中统一的状态中创建了卡片模型对象，通过卡片模型id(cardId)
+  // 获取出来。
   getCard(cardId) {
     return this.cardMap[cardId];
   }

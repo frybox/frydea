@@ -100,7 +100,7 @@ def Edit(cards=None):
       const previewCard = async () => {
         if (this.isReady) {
           const cardId = currentCard.model.cardId;
-          await this.g.previewArea.preview(cardId);
+          await this.g.previewArea.preview({cardId});
         }
       }
       const cardKeyMap = {
@@ -177,7 +177,7 @@ def EditorCard(card):
       </div>
     </div>
   </template>
-  <script card={card.todict()}>
+  <script card={card.todict()} cardId={0}>
     import { EditorState } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
@@ -186,8 +186,14 @@ def EditorCard(card):
     import { oneDark } from "@codemirror/theme-one-dark";
 
     let editor;
-
-    const cardModel = cardManager.createCard(card);
+    let cardModel;
+    if (cardId) {
+      // 前端已经有了该卡片模型对象，如已经建了预览卡片
+      cardModel = cardManager.getCard(cardId);
+    } else {
+      // 调用createCard的三种情况都有可能
+      cardModel = await cardManager.createCard(card);
+    }
 
     CodeMirror.commands.save = async () => {
       await cardModel.save();

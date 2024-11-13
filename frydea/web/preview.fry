@@ -14,20 +14,20 @@ def Preview():
   </template>
   <script>
     const previewCards = [];
-    const newCard = async (cardId) => {
-      const newcard = await template.create({cardId});
+    const newCard = async ({card, cardId}) => {
+      const newcard = await template.create({card, cardId});
       container.appendChild(newcard.fryelement);
       previewCards.push(newcard);
       newcard.fryelement.scrollIntoView();
     }
-    this.preview = async (cardId) => {
-      for (const card in previewCards) {
-        if (cardId === card.cardId) {
-            card.fryelement.scrollIntoView();
+    this.preview = async ({card, cardId}) => {
+      for (const pc of previewCards) {
+        if (cardId === pc.model.cardId) {
+            pc.fryelement.scrollIntoView();
             return
         }
       }
-      await newCard(cardId);
+      await newCard({card, cardId});
     }
     this.closest = (y) => {
       let delta = 999999999;
@@ -86,7 +86,6 @@ def Preview():
             previewCards.length = 0;
         } else {
             const index = previewCards.indexOf(currentCard);
-            let nextCard;
             if (index > 0) {
                 nextCard = previewCards[index - 1];
             } else if (index < previewCards.length - 1) {
@@ -126,7 +125,7 @@ def Preview():
 
 def PreviewCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
-  cardId = card.id
+  cid = card.id if card.id else 0
   <template>
     <div mx-4px w-sub,100%,8px min-h-200px mb-20px
          border border-gray-bdx rounded-md
@@ -139,9 +138,9 @@ def PreviewCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p ref=(elNumber)>{card.id}</p>
+          <p>[{cid}](cardModel.displayCid)</p>
         </div>
-        <p ref=(elUpdateTime)>{time}</p>
+        <p>[{time}](cardModel.displayTime)</p>
       </div>
       <div ref=(elContent)
            flex-auto w-full
@@ -152,17 +151,21 @@ def PreviewCard(card):
       </div>
     </div>
   </template>
-  <script {cardId}>
+  <script card={card.todict()} cardId={0}>
     import * as dayjs from "dayjs";
     import { marked } from "marked";
     import { cardManager } from "./frydea.js";
     import { effect } from "fryhcs";
 
-    let cardModel = cardManager.getCard(cardId);
+    let cardModel;
+    if (cardId) {
+      cardModel = cardManager.getCard(cardId);
+    } else {
+      cardModel = await cardManager.createCard(card);
+    }
 
     this.dispose = effect(() => {
       elContent.innerHTML = marked(cardModel.content.value);
-      elUpdateTime.textContent = cardModel.displayTime.value;
     });
     this.focus = () => {
       elContainer.focus();
