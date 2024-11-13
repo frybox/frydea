@@ -12,8 +12,9 @@ Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
 const getTime = (updateTime) => dayjs(new Date(updateTime)).format('YYYY-MM-DD HH:mm');
 
 class CardModel {
-  constructor(card) {
+  constructor(card, manager) {
     const {cid=0, version=0, content='', updateTime=new Date()} = card;
+    // cid是服务端id，draft的cid为0
     this.cid = cid ? cid : 0;
     this.version = version ? version : 0;
     this.content = signal(content);
@@ -22,6 +23,10 @@ class CardModel {
     this.displayCid = signal(cid)
     this.displayTime = computed(() => getTime(this.updateTime.value));
     this.conflict = false;
+    // cardId是本地id，保证本地唯一，draft也有本地id
+    this.cardId = manager.nextCardId;
+    this.manager = manager;
+    this.manager.cardMap[this.cardId] = this;
   }
 
   get isDraft() {
@@ -56,7 +61,7 @@ class CardModel {
     const result = await response.json();
     if (result.code === 0) {
       this.serverUpdate(result.card, flush);
-      cardManager.serverUpdate(result.clid, result.changes);
+      this.manager.serverUpdate(result.clid, result.changes);
     }
   }
 
@@ -88,7 +93,7 @@ class CardModel {
       if (result.code === 0) {
         console.log('server updated');
         this.serverUpdate(result.card);
-        cardManager.serverUpdate(result.clid, result.changes);
+        this.manager.serverUpdate(result.clid, result.changes);
       } else {
         console.log(result.msg);
       }
@@ -105,8 +110,7 @@ class CardModel {
       if (result.code === 0) {
         console.log('server created');
         this.serverUpdate(result.card);
-        cardManager.publishCard(this);
-        cardManager.serverUpdate(result.clid, result.changes);
+        this.manager.serverUpdate(result.clid, result.changes);
       } else {
         console.log(result.msg);
       }
@@ -141,54 +145,30 @@ class CardManager {
     this.cids = new Set();
     // 与上述卡片id列表对应的最大changelog id
     this.clid = 0;
-    // 未保存到服务器上的卡片（cid=0，version=0）
-    this.drafts = [];
     // 卡片ID到卡片的映射(只有服务器上存在的卡片)
     this.cardMap = {};
+    this._nextCardId = 1;
   }
 
-  publishCard(card) {
-    const index = this.drafts.indexOf(card);
-    if (index !== -1) {
-      this.drafts.splice(index, 1);
-    }
-    if (!card.isDraft) {
-      this.cardMap[card.cid] = card;
-    }
+  get nextCardId() {
+    return this._nextCardId ++;
   }
 
   async loadCard(cid) {
     if (cid <= 0) throw `Can't load card of id ${cid}`;
-    const card = this.createCard({cid});
+    const card = new CardModel({cid}, this);
     await card.load();
     return card;
   }
 
-  createCard(card) {
-    const { cid } = card;
-    let cardModel = new CardModel(card);
-    if (cid === 0) {
-      // 新草稿卡片
-      this.drafts.push(cardModel);
-    } else {
-      // 已有卡片模型
-      this.cardMap[cid] = cardModel;
-    }
-    return cardModel;
+  async createCard(c) {
+    const card = new CardModel(c, this);
+    await card.load();
+    return card;
   }
 
-  async getCard(cardId) {
-    if (cardId > 0) {
-      if (cardId in this.cardMap)
-        return this.cardMap[cardId];
-      const card = await this.loadCard(cardId);
-      return card;
-    } else {
-      cardId = -cardId;
-      if (cardId < this.drafts.length) {
-        return this.drafts[cardId];
-      }
-    }
+  getCard(cardId) {
+    return this.cardMap[cardId];
   }
 
   getCardId(card) {
