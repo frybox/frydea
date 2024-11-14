@@ -12,14 +12,9 @@ def App(cards=None, cids=None, clid=0):
   <template>
     <div h-screen w-screen overflow-x-auto>
       <Header />
-      <Body {cards} />
+      <Body {cards} {cids} {clid} />
     </div>
   </template>
-  <script {cids} {clid}>
-    import { cardManager } from './frydea.js';
-    cardManager.cids = new Set(cids);
-    cardManager.clid = clid;
-  </script>
 
 def Header():
   <template>
@@ -29,11 +24,11 @@ def Header():
   <script>
   </script>
 
-def Body(cards):
+def Body(cards, cids, clid):
   <template>
     <div flex mt-30px h-sub,100%,30px w-full>
       <SideBar/>
-      <Main {cards} />
+      <Main {cards} {cids} {clid} />
     </div>
   </template>
   <script>
@@ -47,13 +42,13 @@ def SideBar():
   <script>
   </script>
 
-def Main(cards):
+def Main(cards, cids, clid):
   left = <Index ref=(indexArea) />
   right = <Preview ref=(previewArea) />
   <template>
     <div box-border w-sub,100%,30px mx-auto h-full bg-gray-bg>
       <HCenter {left} {right}>
-        <Edit ref=(editArea) {cards} width="3fr" />
+        <Edit ref=(editArea) {cards} {cids} {clid} width="3fr" />
       </HCenter>
     </div>
   </template>

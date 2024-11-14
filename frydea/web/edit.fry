@@ -2,7 +2,7 @@ from fryhcs import Element
 from fryui import Icon, Button
 from frydea.models import Card
 
-def Edit(cards=None):
+def Edit(cards=None, cids, clid):
   cards = cards if cards else []
   empty_card = Card()
   <template>
@@ -10,7 +10,7 @@ def Edit(cards=None):
          bg-primary-elx box-border h-full overflow-auto
          @keydown=(handleCardKey)>
       <EditorCard frytemplate ref=(template) card={empty_card} />
-      {<EditorCard refall=(editorCards) {card}/> for card in cards}
+      {<EditorCard refall=(editItems) {card}/> for card in cards}
       <div ref=(oparea) w-full text-center mt-30px>
         <Button @click=(newCard) wide info>
           <Icon type="plus" class="h-8 w-8"/>
@@ -18,22 +18,25 @@ def Edit(cards=None):
       </div>
     </div>
   </template>
-  <script>
+  <script {cids} {clid}>
     import { cardManager } from './frydea.js';
-    editorCards = editorCards ? editorCards : [];
+    
+    cardManager.cids = new Set(cids);
+    cardManager.clid = clid;
+    editItems = editItems ? editItems : [];
     document.addEventListener('keydown', function(e) {
         const active = document.activeElement;
         if (e.code === 'Escape' && (!active || !active.frycomponents)) {
-            const len = editorCards.length;
+            const len = editItems.length;
             if (len > 0) {
-                editorCards[len-1].focus();
+                editItems[len-1].focus();
             }
         }
     });
     const newCard = async () => {
         const newcard = await template.create();
         container.insertBefore(newcard.fryelement, oparea);
-        editorCards.push(newcard);
+        editItems.push(newcard);
         newcard.toCommandMode();
         newcard.fryelement.scrollIntoView();
         return newcard;
@@ -49,16 +52,16 @@ def Edit(cards=None):
         e.preventDefault();
       };
       const moveDown = () => {
-        const index = editorCards.indexOf(currentCard);
-        if (index >= 0 && index+1 < editorCards.length) {
-          currentCard = editorCards[index+1];
+        const index = editItems.indexOf(currentCard);
+        if (index >= 0 && index+1 < editItems.length) {
+          currentCard = editItems[index+1];
           currentCard.focus();
         }
       }
       const moveUp = () => {
-        const index = editorCards.indexOf(currentCard);
+        const index = editItems.indexOf(currentCard);
         if (index > 0) {
-          currentCard = editorCards[index-1];
+          currentCard = editItems[index-1];
           currentCard.focus();
         }
       }
@@ -91,10 +94,10 @@ def Edit(cards=None):
         if (!all) {
           await currentCard.save();
         } else {
-          for (const card of editorCards) {
+          for (const card of editItems) {
             await card.save();
           }
-          console.log(`all of ${editorCards.length} cards are saved.`);
+          console.log(`all of ${editItems.length} cards are saved.`);
         }
       }
       const previewCard = async () => {
@@ -126,14 +129,14 @@ def Edit(cards=None):
       }
     };
 
-    if (editorCards.length > 0) {
-      editorCards[editorCards.length-1].focus();
+    if (editItems.length > 0) {
+      editItems[editItems.length-1].focus();
     }
 
     this.closest = (y) => {
       let delta = 999999999;
       let card = null;
-      for (const c of editorCards) {
+      for (const c of editItems) {
         const rect = c.fryelement.getBoundingClientRect();
         const middle = rect.top + rect.height/2;
         const d = Math.abs(middle-y);
@@ -147,7 +150,33 @@ def Edit(cards=None):
   </script>
 
 def CardSeparator(min_cid, max_cid, count):
-    pass
+  <template>
+    <div>
+      <Button @click=(expandUp) secondary block>
+        ...
+      </Button>
+      <div text-center>
+        [{count}](countSignal)
+      </div>
+      <Button @click=(expandDown) secondary block>
+        ...
+      </Button>
+    </div>
+  </template>
+  <script minCid={min_cid} maxCid={max_cid} {count}>
+    import { signal } from 'fryhcs';
+    import { cardManager } from './frydea.js';
+
+    const countSignal = signal(count);
+    const expandUp = () => {
+      const len = Math.min(count, 5);
+      const cards = cardManager.sliceRight(minCid, len);
+      count newCount = count - len;
+    };
+
+    this.type = 'separator';
+
+  </script>
 
 def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
@@ -270,5 +299,6 @@ def EditorCard(card):
     }
 
     this.model = cardModel;
+    this.type = 'card';
   </script>
 
