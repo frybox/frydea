@@ -4,6 +4,7 @@ from frydea.models import Card
 
 def Edit(items):
   empty_card = Card()
+  separator_args = dict(min_cid=0, max_cid=0, count=0)
   def comp(item):
     if isinstance(item, Card):
       return <EditorCard refall=(editItems) card={item} />
@@ -13,9 +14,10 @@ def Edit(items):
     <div ref=(container)
          bg-primary-elx box-border h-full overflow-auto
          @keydown=(handleCardKey)>
-      <EditorCard frytemplate ref=(template) card={empty_card} />
+      <EditorCard frytemplate ref=(cardTemplate) card={empty_card} />
+      <CardSeparator frytemplate ref=(separatorTemplate) {**separator_args} />
       {comp(item) for item in items}
-      <div ref=(oparea) w-full text-center mt-30px>
+      <div ref=(opArea) w-full text-center mt-30px>
         <Button @click=(newDraftCard) wide info>
           <Icon type="plus" class="h-8 w-8"/>
         </Button>
@@ -40,8 +42,8 @@ def Edit(items):
     });
     
     const newDraftCard = async () => {
-        const newcard = await template.create();
-        container.insertBefore(newcard.fryelement, oparea);
+        const newcard = await cardTemplate.create();
+        container.insertBefore(newcard.fryelement, opArea);
         editItems.push(newcard);
         newcard.toCommandMode();
         newcard.fryelement.scrollIntoView();
@@ -51,39 +53,59 @@ def Edit(items):
 
     const handleCardKey = (e) => {
       console.log(e);
-      if (!e.target.frycomponents) {
-        return;
+      let currentItem;
+      let isSeparator = false;
+      if (!e.target.frycomponents && e.target.parentElement.frycomponents) {
+        currentItem = e.target.parentElement.frycomponents[0];
+        isSeparator = true;
+      } else {
+        currentItem = e.target.frycomponents[0];
       }
-      let currentCard = e.target.frycomponents[0];
       const toCommandMode = () => {
-        currentCard.toCommandMode();
+        if (!isSeparator) {
+          currentItem.toCommandMode();
+        }
         e.preventDefault();
       };
       const moveDown = () => {
-        const index = editItems.indexOf(currentCard);
-        if (index >= 0 && index+1 < editItems.length) {
-          currentCard = editItems[index+1];
-          currentCard.focus();
+        if (!isSeparator || !currentItem.isUp) {
+          const index = editItems.indexOf(currentItem);
+          if (index >= 0 && index+1 < editItems.length) {
+            currentItem = editItems[index+1];
+            if (currentItem.fryname === 'EditorCard') {
+              currentItem.focus();
+            } else {
+              currentItem.focusUp();
+            }
+          }
+        } else {
+          currentItem.focusDown();
         }
       }
       const moveUp = () => {
-        const index = editItems.indexOf(currentCard);
-        if (index > 0) {
-          currentCard = editItems[index-1];
-          currentCard.focus();
+        if (!isSeparator || currentItem.isUp) {
+          const index = editItems.indexOf(currentItem);
+          if (index > 0) {
+            currentItem = editItems[index-1];
+            if (currentItem.fryname === 'EditorCard') {
+              currentItem.focus();
+            } else {
+              currentItem.focusDown();
+            }
+          }
+        } else {
+          currentItem.focusUp();
         }
       }
       const moveLeft = () => {
         console.log('moveLeft');
       }
       const moveRight = () => {
-        if (this.isReady) {
-          let rect = currentCard.fryelement.getBoundingClientRect();
-          console.log(rect);
-          let middle = rect.top + rect.height/2;
-          const previewCard = this.g.previewArea.closest(middle);
-          if (previewCard) previewCard.focus();
-        }
+        let rect = currentItem.fryelement.getBoundingClientRect();
+        console.log(rect);
+        let middle = rect.top + rect.height/2;
+        const previewCard = this.g.previewArea.closest(middle);
+        if (previewCard) previewCard.focus();
         console.log('moveRight');
       }
       const deleteCard = (force=false) => {
@@ -100,17 +122,20 @@ def Edit(items):
       }
       const saveCard = async (all=false) => {
         if (!all) {
-          await currentCard.save();
+          if (!isSeparator) {
+            await currentItem.save();
+          }
         } else {
-          for (const card of editItems) {
-            await card.save();
+          for (const item of editItems) {
+            if (item.fryname === 'EditorCard')
+              await item.save();
           }
           console.log(`all of ${editItems.length} cards are saved.`);
         }
       }
       const previewCard = async () => {
-        if (this.isReady) {
-          const cardId = currentCard.model.cardId;
+        if (!isSeparator) {
+          const cardId = currentItem.model.cardId;
           await this.g.previewArea.preview({cardId});
         }
       }
@@ -136,10 +161,11 @@ def Edit(items):
         cardKeyMap[e.code]();
       }
     };
-
-    if (editItems.length > 0) {
-      editItems[editItems.length-1].focus();
-    }
+    this.ready(() => {
+      if (editItems.length > 0) {
+        editItems[editItems.length-1].focus();
+      }
+    })
 
     const newItem = async (type, direction, args, item) => {
       const index = editItems.indexOf(item);
@@ -157,7 +183,7 @@ def Edit(items):
         editItems.splice(index, 0, newitem);
       } else {
         if (index === editItems.length-1) {
-          container.appendChild(newitem.fryelement);
+          container.insertBefore(newitem.fryelement, opArea);
           editItems.push(newitem);
         } else {
           item = editItems[index+1];
@@ -208,16 +234,20 @@ def Edit(items):
 
 def CardSeparator(min_cid, max_cid, count):
   <template>
-    <div>
-      <Button ref=(upButton) @click=(expandUp) secondary block>
+    <div mt-10px mb-10px>
+      <button ref=(upButton) @click=(expandUp)
+              bg-success-elx mx-4px w-sub,100%,8px
+              focus="outline outline-4 outline-primaryax">
         ...
-      </Button>
+      </button>
       <div text-center>
         [{count}](countSignal)
       </div>
-      <Button ref=(downButton) @click=(expandDown) secondary block>
+      <button ref=(downButton) @click=(expandDown)
+              bg-success-elx mx-4px w-sub,100%,8px
+              focus="outline outline-4 outline-primaryax">
         ...
-      </Button>
+      </button>
     </div>
   </template>
   <script minCid={min_cid} maxCid={max_cid} {count}>
@@ -225,28 +255,56 @@ def CardSeparator(min_cid, max_cid, count):
     import { cardManager } from './frydea.js';
 
     const countSignal = signal(count);
-    const expandUp = () => {
-      const len = Math.min(count, 5);
-      const cids = cardManager.sliceRight(minCid, len);
-      const newCount = count - len;
+    const expandUp = async () => {
+      const oldCount = countSignal.peek();
+      const len = Math.min(oldCount, 5);
+      const [cids, nextCid] = cardManager.sliceRight(minCid, len);
+      const newCount = oldCount - len;
+      let lastCard;
       for (const cid of cids) {
         const card = {cid};
-        this.fryparent.newCardBefore({card}, this);
+        lastCard = await this.fryparent.newCardBefore({card}, this);
       }
       if (newCount === 0) {
-
+        this.fryparent.removeItem(this);
+        lastCard.focus();
+      } else {
+        countSignal.value = newCount;
+        minCid = nextCid;
       }
     };
 
-    this.focusUp = () => { upButton.focus(); };
-    this.focusDown = () => { downButton.focus(); };
+    const expandDown = async () => {
+      const oldCount = countSignal.peek();
+      const len = Math.min(oldCount, 5);
+      const [cids, prevCid] = cardManager.sliceLeft(maxCid, len);
+      const newCount = oldCount - len;
+      let firstCard;
+      cids.sort((a,b)=>b-a);
+      for (const cid of cids) {
+        const card = {cid};
+        firstCard = await this.fryparent.newCardAfter({card}, this);
+      }
+      if (newCount === 0) {
+        this.fryparent.removeItem(this);
+        firstCard.focus();
+      } else {
+        countSignal.value = newCount;
+        maxCid = prevCid;
+      }
+    };
+
+    this.isUp = false;
+    this.focusUp = () => { upButton.focus(); this.isUp = true; };
+    this.focusDown = () => { downButton.focus(); this.isUp = false; };
+    this.focus = () => { this.focusUp(); };
   </script>
 
 
 def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
   <template>
-    <div mx-4px w-sub,100%,8px min-h-200px mb-20px
+    <div mx-4px w-sub,100%,8px min-h-200px mt-10px mb-10px
          border border-gray-bdx rounded-md
          focus="outline outline-4 outline-primaryax"
          has-focus="outline outline-2 outline-primaryax"
@@ -330,7 +388,7 @@ def EditorCard(card):
           EditorView.lineWrapping,
           updator,
           frytheme,
-          //oneDark,
+          oneDark,
         ]
       })
       return state;

@@ -195,7 +195,8 @@ class CardManager {
     const end = cids.indexOf(cid) + 1;
     let start = end - count;
     start = start < 0 ? 0 : start;
-    return cids.slice(start, end);
+    const prevCid = start === 0 ? 0 : cids[start-1];
+    return [cids.slice(start, end), prevCid];
   }
 
   sliceRight(cid, count) {
@@ -207,7 +208,8 @@ class CardManager {
     const start = cids.indexOf(cid);
     let end = start + count;
     end = end > cids.length ? cids.length : end;
-    return cids.slice(start, end);
+    const nextCid = end === cids.length ? 0 : cids[end];
+    return [cids.slice(start, end), nextCid];
   }
 
   async serverUpdate(clid, changes) {
@@ -220,13 +222,20 @@ class CardManager {
     let conflict = [];
     for (const cid of cids) {
       const version = changes[cid];
+      const card = this.cid2cardMap[cid];
       if (version < 0) {
         this.cids.delete(cid);
+        if (card && card.isDirty) {
+          card.conflict = true;
+          conflict.push(card);
+        } else if (card) {
+          // TODO delete card
+        }
       } else {
         this.cids.add(cid);
-      }
-      if (cid in this.cardMap) {
-        changed.push(this.cardMap[cid]);
+        if (card && card.version < version) {
+          changed.push(card);
+        }
       }
     }
 
