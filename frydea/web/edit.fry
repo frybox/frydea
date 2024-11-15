@@ -2,38 +2,44 @@ from fryhcs import Element
 from fryui import Icon, Button
 from frydea.models import Card
 
-def Edit(cards=None, cids, clid):
-  cards = cards if cards else []
+def Edit(items):
   empty_card = Card()
+  def comp(item):
+    if isinstance(item, Card):
+      return <EditorCard refall=(editItems) card={item} />
+    else:
+      return <CardSeparator refall=(editItems) {**item} />
   <template>
     <div ref=(container)
          bg-primary-elx box-border h-full overflow-auto
          @keydown=(handleCardKey)>
       <EditorCard frytemplate ref=(template) card={empty_card} />
-      {<EditorCard refall=(editItems) {card}/> for card in cards}
+      {comp(item) for item in items}
       <div ref=(oparea) w-full text-center mt-30px>
-        <Button @click=(newCard) wide info>
+        <Button @click=(newDraftCard) wide info>
           <Icon type="plus" class="h-8 w-8"/>
         </Button>
       </div>
     </div>
   </template>
-  <script {cids} {clid}>
+  <script>
     import { cardManager } from './frydea.js';
-    
-    cardManager.cids = new Set(cids);
-    cardManager.clid = clid;
     editItems = editItems ? editItems : [];
     document.addEventListener('keydown', function(e) {
         const active = document.activeElement;
         if (e.code === 'Escape' && (!active || !active.frycomponents)) {
             const len = editItems.length;
             if (len > 0) {
+                const item = editItems[len-1];
+                if (item.fryname === 'CardSeparator') {
+
+                }
                 editItems[len-1].focus();
             }
         }
     });
-    const newCard = async () => {
+    
+    const newDraftCard = async () => {
         const newcard = await template.create();
         container.insertBefore(newcard.fryelement, oparea);
         editItems.push(newcard);
@@ -41,6 +47,8 @@ def Edit(cards=None, cids, clid):
         newcard.fryelement.scrollIntoView();
         return newcard;
     };
+
+
     const handleCardKey = (e) => {
       console.log(e);
       if (!e.target.frycomponents) {
@@ -117,7 +125,7 @@ def Edit(cards=None, cids, clid):
         ArrowLeft: moveLeft,
         KeyL: moveRight,
         ArrowRight: moveRight,
-        KeyA: newCard,
+        KeyA: newDraftCard,
         KeyD: () => {deleteCard(e.shiftKey)},
         KeyB: broadenCard,
         KeyN: narrowCard,
@@ -133,6 +141,55 @@ def Edit(cards=None, cids, clid):
       editItems[editItems.length-1].focus();
     }
 
+    const newItem = async (type, direction, args, item) => {
+      const index = editItems.indexOf(item);
+      if (index === -1) {
+        throw `Invalid item ${item}`;
+      }
+      let template;
+      if (type === 'card')
+        template = cardTemplate;
+      else
+        template = separatorTemplate;
+      const newitem = await template.create(args);
+      if (direction === 'before') {
+        container.insertBefore(newitem.fryelement, item.fryelement);
+        editItems.splice(index, 0, newitem);
+      } else {
+        if (index === editItems.length-1) {
+          container.appendChild(newitem.fryelement);
+          editItems.push(newitem);
+        } else {
+          item = editItems[index+1];
+          container.insertBefore(newitem.fryelement, item.fryelement);
+          editItems.splice(index+1, 0, newitem);
+        }
+      }
+      return newitem;
+    };
+
+    this.newCardBefore = async (args, item) => {
+        return newItem('card', 'before', args, item);
+    };
+
+    this.newCardAfter = async (args, item) => {
+      return newItem('card', 'after', args, item);
+    };
+
+    this.newSeparatorBefore = async (args, item) => {
+      return newItem('separator', 'before', args, item);
+    }
+
+    this.newSeparatorAfter = async (args, item) => {
+      return newItem('separator', 'after', args, item);
+    }
+
+    this.removeItem = (item) => {
+      const index = editItems.indexOf(item);
+      editItems.splice(index, 1);
+      item.fryelement.remove();
+    };
+    
     this.closest = (y) => {
       let delta = 999999999;
       let card = null;
@@ -152,13 +209,13 @@ def Edit(cards=None, cids, clid):
 def CardSeparator(min_cid, max_cid, count):
   <template>
     <div>
-      <Button @click=(expandUp) secondary block>
+      <Button ref=(upButton) @click=(expandUp) secondary block>
         ...
       </Button>
       <div text-center>
         [{count}](countSignal)
       </div>
-      <Button @click=(expandDown) secondary block>
+      <Button ref=(downButton) @click=(expandDown) secondary block>
         ...
       </Button>
     </div>
@@ -170,13 +227,21 @@ def CardSeparator(min_cid, max_cid, count):
     const countSignal = signal(count);
     const expandUp = () => {
       const len = Math.min(count, 5);
-      const cards = cardManager.sliceRight(minCid, len);
-      count newCount = count - len;
+      const cids = cardManager.sliceRight(minCid, len);
+      const newCount = count - len;
+      for (const cid of cids) {
+        const card = {cid};
+        this.fryparent.newCardBefore({card}, this);
+      }
+      if (newCount === 0) {
+
+      }
     };
 
-    this.type = 'separator';
-
+    this.focusUp = () => { upButton.focus(); };
+    this.focusDown = () => { downButton.focus(); };
   </script>
+
 
 def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
@@ -299,6 +364,5 @@ def EditorCard(card):
     }
 
     this.model = cardModel;
-    this.type = 'card';
   </script>
 

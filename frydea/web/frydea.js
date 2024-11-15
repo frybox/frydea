@@ -27,6 +27,9 @@ class CardModel {
     this.cardId = manager.nextCardId;
     this.manager = manager;
     this.manager.cardMap[this.cardId] = this;
+    if (this.cid > 0) {
+      this.manager.cid2cardMap[cid] = this;
+    }
   }
 
   get isDraft() {
@@ -124,6 +127,9 @@ class CardModel {
       throw `Invalid card ${cid} version: ${version} != ${this.version} + 1`;
     }
     this.cid = cid;
+    if (this.cid > 0) {
+      this.manager.cid2cardMap[cid] = this;
+    }
     this.displayCid.value = cid;
     this.version = version;
     this.serverContent = content;
@@ -145,8 +151,10 @@ class CardManager {
     this.cids = new Set();
     // 与上述卡片id列表对应的最大changelog id
     this.clid = 0;
-    // 客户端卡片ID(cardId)到卡片的映射(只有服务器上存在的卡片)
+    // 客户端卡片ID(cardId)到卡片的映射
     this.cardMap = {};
+    // 服务端卡片ID(cid)到卡片的映射（服务器上存在的卡片）
+    this.cid2cardMap = {};
     this._nextCardId = 1;
   }
 
@@ -158,11 +166,14 @@ class CardManager {
   // 1. 当从服务端拿到卡片数据时(有cid/version/content/updateTime完整数据)
   // 2. 只拿到服务端id(cid)，需要从服务端加载数据时(cid>0, version=0)
   // 3. 前端创建新草稿卡片时（什么都没有，cid=0, version=0）
-  // 这三种情况下，都会在前端集中统一的状态中创建一个卡片模型对象，所有前端UI都使用该对象
+  // 这三种情况下，都会在前端集中统一的状态中创建一个卡片模型对象，所有前端UI都使用该对象。
+  // 当c.cid对应的卡片在cardManager中已经存在，不创建新卡片，直接返回已有卡片
   async createCard(c) {
     const {cid, version} = c;
-    const card = new CardModel(c, this);
-    if (cid > 0 && version === 0) {
+    let card = this.cid2cardMap[cid];
+    if (card) return card;
+    card = new CardModel(c, this);
+    if (cid > 0 && !version) {
       // 只有服务端ID，但没有内容时，将该卡片从服务端加载过来
       await card.load();
     }
@@ -173,6 +184,30 @@ class CardManager {
   // 获取出来。
   getCard(cardId) {
     return this.cardMap[cardId];
+  }
+
+  sliceLeft(cid, count) {
+    if (!this.cids.has(cid)) {
+      throw `Invalid cid ${cid}`;
+    }
+    const cids = Array.from(this.cids);
+    cids.sort((a,b) => a-b);
+    const end = cids.indexOf(cid) + 1;
+    let start = end - count;
+    start = start < 0 ? 0 : start;
+    return cids.slice(start, end);
+  }
+
+  sliceRight(cid, count) {
+    if (!this.cids.has(cid)) {
+      throw `Invalid cid ${cid}`;
+    }
+    const cids = Array.from(this.cids);
+    cids.sort((a,b) => a-b);
+    const start = cids.indexOf(cid);
+    let end = start + count;
+    end = end > cids.length ? cids.length : end;
+    return cids.slice(start, end);
   }
 
   async serverUpdate(clid, changes) {

@@ -9,12 +9,29 @@ def App(cards=None, cids=None, clid=0):
   cards = [] if not cards else cards
   cids = [] if not cids else cids
   clid = clid if clid else 0
+  items = []
+  cids1 = cids[:]
+  for card in cards:
+    i = cids1.index(card.id)
+    if i > 0:
+      items.append(dict(min_cid=cids1[0], max_cid=cids1[i-1], count=i))
+    items.append(card)
+    cids1 = cids1[i+1:]
+  if cids1:
+    items.append(dict(min_cid=cids1[0], max_cid=cids1[-1], count=len(cids1)))
+
   <template>
     <div h-screen w-screen overflow-x-auto>
       <Header />
-      <Body {cards} {cids} {clid} />
+      <Body {items} />
     </div>
   </template>
+  <script {cids} {clid}>
+    import { cardManager } from './frydea.js';
+    cardManager.cids = new Set(cids);
+    cardManager.clid = clid;
+  </script>
+
 
 def Header():
   <template>
@@ -24,11 +41,12 @@ def Header():
   <script>
   </script>
 
-def Body(cards, cids, clid):
+
+def Body(items):
   <template>
     <div flex mt-30px h-sub,100%,30px w-full>
       <SideBar/>
-      <Main {cards} {cids} {clid} />
+      <Main {items} />
     </div>
   </template>
   <script>
@@ -42,13 +60,13 @@ def SideBar():
   <script>
   </script>
 
-def Main(cards, cids, clid):
+def Main(items):
   left = <Index ref=(indexArea) />
   right = <Preview ref=(previewArea) />
   <template>
     <div box-border w-sub,100%,30px mx-auto h-full bg-gray-bg>
       <HCenter {left} {right}>
-        <Edit ref=(editArea) {cards} {cids} {clid} width="3fr" />
+        <Edit ref=(editArea) {items} width="3fr" />
       </HCenter>
     </div>
   </template>
