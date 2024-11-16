@@ -169,7 +169,13 @@ def Edit(items):
               prev.maxCid = currentItem.model.cid;
               prev.count = prev.count + 1;
               this.removeItem(currentItem);
-              prev.focusDown();
+              if (next) {
+                // 焦点优先切换到下一张卡片
+                next.focus();
+              } else {
+                // 没有下一张卡片，切换到分割线上
+                prev.focusDown();
+              }
             }
           } else {
             if (next && next.isSeparator) {
@@ -177,13 +183,24 @@ def Edit(items):
               next.minCid = currentItem.model.cid;
               next.count = next.count + 1;
               this.removeItem(currentItem);
-              next.focusUp();
+              if (prev) {
+                // 焦点优先切换到上一张卡片
+                prev.focus();
+              } else {
+                next.focusUp();
+              }
             } else {
               // 上下都不是separator，新建separator
               const cid = currentItem.model.cid;
               const separator = await this.newSeparatorBefore({minCid: cid, maxCid: cid, count: 1}, currentItem);
               this.removeItem(currentItem);
-              separator.focusUp();
+              if (prev) {
+                prev.focus();
+              } else if (next) {
+                next.focus();
+              } else {
+                separator.focusUp();
+              }
             }
           }
         }
@@ -317,8 +334,7 @@ def Edit(items):
 def CardSeparator(min_cid, max_cid, count):
   <template>
     <div mt-20px mb-20px mx-4px w-sub,100%,8px
-         border border-gray-bdx rounded-md
-         has-focus="outline outline-2 outline-primaryax">
+         border border-gray-bdx rounded-md>
       <button ref=(upButton) @click=(expandUp)
               mx-4px w-sub,100%,8px mb-4px
               focus="outline outline-4 outline-primaryax">
