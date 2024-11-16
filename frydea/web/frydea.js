@@ -1,13 +1,24 @@
 import { signal, computed } from "fryhcs";
-import { Vim } from "@replit/codemirror-vim";
+import { Vim, CodeMirror } from "@replit/codemirror-vim";
 import dayjs from "dayjs";
 
 Vim.defineAction('toCardMode', (cm, args) => {
   // 将焦点从CM编辑器挪到EditorCard元素身上
   // TODO 当前这种直接假定EditorCard DOM树结构的办法不太完美
-  cm.cm6.dom.parentElement.parentElement.focus();
+  const editorCardElement = cm.cm6.dom.parentElement.parentElement;
+  if (editorCardElement.frycomponents && editorCardElement.frycomponents[0]) {
+    editorCardElement.frycomponents[0].focus();
+  }
 });
 Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
+
+CodeMirror.commands.save = async (cm) => {
+  const editorCardElement = cm.cm6.dom.parentElement.parentElement;
+  if (editorCardElement.frycomponents && editorCardElement.frycomponents[0]) {
+    await editorCardElement.frycomponents[0].model.save();
+  }
+}
+
 
 const getTime = (updateTime) => dayjs(new Date(updateTime)).format('YYYY-MM-DD HH:mm');
 
@@ -20,7 +31,7 @@ class CardModel {
     this.content = signal(content);
     this.updateTime = signal(updateTime);
     this.serverContent = cid ? content : '';
-    this.displayCid = signal(cid)
+    this.displayName = signal(cid)
     this.displayTime = computed(() => getTime(this.updateTime.value));
     this.conflict = false;
     // cardId是本地id，保证本地唯一，draft也有本地id
@@ -38,6 +49,12 @@ class CardModel {
 
   get isDirty() {
     return this.isDraft || this.serverContent !== this.content.peek();
+  }
+
+  rollback() {
+    if (this.isDirty) {
+      this.content.value = this.serverContent;
+    }
   }
 
   // 从UI更新卡片内容到模型中，导致该模型变脏，需要调用save()保存到服务器上
@@ -130,7 +147,7 @@ class CardModel {
     if (this.cid > 0) {
       this.manager.cid2cardMap[cid] = this;
     }
-    this.displayCid.value = cid;
+    this.displayName.value = `${cid}`;
     this.version = version;
     this.serverContent = content;
     if (flush) {

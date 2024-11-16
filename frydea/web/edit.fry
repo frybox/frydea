@@ -34,7 +34,7 @@ def Edit(items):
           // 当前焦点在Edit区域中，不处理
           return;
         }
-        if (e.code === 'Escape' && (!active || !active.frycomponents)) {
+        if ((e.code === 'Escape' || e.code === 'Enter') && (!active || !active.frycomponents)) {
             const len = editItems.length;
             if (len > 0) {
                 const item = editItems[len-1];
@@ -50,7 +50,7 @@ def Edit(items):
         const newcard = await cardTemplate.create();
         container.insertBefore(newcard.fryelement, opArea);
         editItems.push(newcard);
-        newcard.toCommandMode();
+        newcard.toVimEditor();
         newcard.fryelement.scrollIntoView();
         return newcard;
     };
@@ -86,9 +86,9 @@ def Edit(items):
         return;
       }
 
-      const toCommandMode = () => {
+      const toVimEditor = () => {
         if (!isSeparator) {
-          currentItem.toCommandMode();
+          currentItem.toVimEditor();
           e.preventDefault();
         }
       };
@@ -144,6 +144,10 @@ def Edit(items):
       }
       const closeCard = async () => {
         if (!isSeparator) {
+          if (currentItem.model.isDirty) {
+            console.log("该卡片尚未保存到服务器，不能关闭。请先保存到服务器，或回滚当前修改。");
+            return;
+          }
           const index = editItems.indexOf(currentItem);
           let prev = null, next = null;
           if (index > 0) {
@@ -216,8 +220,8 @@ def Edit(items):
         }
       }
       const cardKeyMap = {
-        Enter: toCommandMode,
-        KeyI: toCommandMode,
+        Enter: toVimEditor,
+        KeyI: toVimEditor,
         KeyJ: moveDown,
         ArrowDown: moveDown,
         KeyK: moveUp,
@@ -313,13 +317,14 @@ def Edit(items):
 def CardSeparator(min_cid, max_cid, count):
   <template>
     <div mt-20px mb-20px mx-4px w-sub,100%,8px
-         border border-gray-bdx rounded-md>
+         border border-gray-bdx rounded-md
+         has-focus="outline outline-2 outline-primaryax">
       <button ref=(upButton) @click=(expandUp)
               mx-4px w-sub,100%,8px mb-4px
               focus="outline outline-4 outline-primaryax">
         ...
       </button>
-      <div text-center bg-info font-bold text-lg text-primary-t>
+      <div text-center bg-info font-bold text-lg text-info-tx>
         [{count}](countSignal)张卡片
       </div>
       <button ref=(downButton) @click=(expandDown)
@@ -401,7 +406,7 @@ def EditorCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p>[{card.id}](cardModel.displayCid)</p>
+          <p>![{card.id}](cardModel.displayName)</p>
         </div>
         <p>[{time}](cardModel.displayTime)</p>
       </div>
@@ -432,14 +437,15 @@ def EditorCard(card):
       cardModel = await cardManager.createCard(card);
     }
 
-    CodeMirror.commands.save = async () => {
-      await cardModel.save();
-    }
-
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
           if (update.docChanged) {
               cardModel.content.value = update.state.doc.toString();
+              if (cardModel.isDirty) {
+                cardModel.displayName.value = `<strong><em>${cardModel.cid}*</em></strong>`;
+              } else {
+                cardModel.displayName.value = `${cardModel.cid}`;
+              }
           }
       });
       const frytheme = EditorView.theme({
@@ -494,7 +500,7 @@ def EditorCard(card):
 
     createEditor();
 
-    this.toCommandMode = () => {
+    this.toVimEditor = () => {
       editor.focus();
     }
 
