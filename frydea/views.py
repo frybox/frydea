@@ -29,7 +29,7 @@ def max_clid():
 def index():
     user = get_user()
     query = db.select(Card).where(Card.user_id == user.id)
-    query = query.order_by(desc(Card.id)).limit(10)
+    query = query.order_by(desc(Card.id)).limit(5)
     cards = reversed(db.session.scalars(query).all())
     query = db.select(Card.id).where(Card.user_id == user.id)
     query = query.order_by(Card.id)

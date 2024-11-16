@@ -236,7 +236,7 @@ def CardSeparator(min_cid, max_cid, count):
   <template>
     <div mt-10px mb-10px>
       <button ref=(upButton) @click=(expandUp)
-              bg-success-elx mx-4px w-sub,100%,8px
+              bg-info mx-4px w-sub,100%,8px
               focus="outline outline-4 outline-primaryax">
         ...
       </button>
@@ -244,7 +244,7 @@ def CardSeparator(min_cid, max_cid, count):
         [{count}](countSignal)
       </div>
       <button ref=(downButton) @click=(expandDown)
-              bg-success-elx mx-4px w-sub,100%,8px
+              bg-info mx-4px w-sub,100%,8px
               focus="outline outline-4 outline-primaryax">
         ...
       </button>
