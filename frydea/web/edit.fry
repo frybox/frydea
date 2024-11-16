@@ -29,6 +29,11 @@ def Edit(items):
     editItems = editItems ? editItems : [];
     document.addEventListener('keydown', function(e) {
         const active = document.activeElement;
+        const comp = domComponent(active);
+        if (comp && comp.fryparent.fryname === 'Edit') {
+          // 当前焦点在Edit区域中，不处理
+          return;
+        }
         if (e.code === 'Escape' && (!active || !active.frycomponents)) {
             const len = editItems.length;
             if (len > 0) {
@@ -50,22 +55,42 @@ def Edit(items):
         return newcard;
     };
 
+    const domComponent = (element) => {
+      while (element) {
+        if (element.frycomponents && element.frycomponents.length > 0) {
+          const len = element.frycomponents.length;
+          return element.frycomponents[len-1];
+        }
+        element = element.parentElement;
+      }
+    }
 
     const handleCardKey = (e) => {
       console.log(e);
       let currentItem;
       let isSeparator = false;
-      if (!e.target.frycomponents && e.target.parentElement.frycomponents) {
-        currentItem = e.target.parentElement.frycomponents[0];
+      currentItem = domComponent(e.target);
+      if (!currentItem) {
+        return;
+      }
+      if (currentItem.isCard) {
+        if (e.target === currentItem.fryelement) {
+          isSeparator = false;
+        } else {
+          // CM6编辑器中的事件，不处理
+          return;
+        }
+      } else if (currentItem.isSeparator) {
         isSeparator = true;
       } else {
-        currentItem = e.target.frycomponents[0];
+        return;
       }
+
       const toCommandMode = () => {
         if (!isSeparator) {
           currentItem.toCommandMode();
+          e.preventDefault();
         }
-        e.preventDefault();
       };
       const moveDown = () => {
         if (!isSeparator || !currentItem.isUp) {
@@ -107,6 +132,57 @@ def Edit(items):
         const previewCard = this.g.previewArea.closest(middle);
         if (previewCard) previewCard.focus();
         console.log('moveRight');
+      }
+      const moveEnd = (last=flase) => {
+        if (editItems.length > 0) {
+          if (last) {
+            editItems[editItems.length-1].focus();
+          } else {
+            editItems[0].focus();
+          }
+        }
+      }
+      const closeCard = async () => {
+        if (!isSeparator) {
+          const index = editItems.indexOf(currentItem);
+          let prev = null, next = null;
+          if (index > 0) {
+            prev = editItems[index-1];
+          }
+          if (index < editItems.length-1) {
+            next = editItems[index+1];
+          }
+          if (prev && prev.isSeparator) {
+            if (next && next.isSeparator) {
+              // 上下都是separator，需要把两个合二为一
+              prev.maxCid = next.maxCid;
+              prev.count = prev.count + 1 + next.count;
+              this.removeItem(next);
+              this.removeItem(currentItem);
+              prev.focusDown();
+            } else {
+              // 只有上面是separator，与上面合在一起
+              prev.maxCid = currentItem.model.cid;
+              prev.count = prev.count + 1;
+              this.removeItem(currentItem);
+              prev.focusDown();
+            }
+          } else {
+            if (next && next.isSeparator) {
+              // 只有下面是separator，与下面合二为一
+              next.minCid = currentItem.model.cid;
+              next.count = next.count + 1;
+              this.removeItem(currentItem);
+              next.focusUp();
+            } else {
+              // 上下都不是separator，新建separator
+              const cid = currentItem.model.cid;
+              const separator = await this.newSeparatorBefore({minCid: cid, maxCid: cid, count: 1}, currentItem);
+              this.removeItem(currentItem);
+              separator.focusUp();
+            }
+          }
+        }
       }
       const deleteCard = (force=false) => {
         if (!force) {
@@ -150,7 +226,9 @@ def Edit(items):
         ArrowLeft: moveLeft,
         KeyL: moveRight,
         ArrowRight: moveRight,
+        KeyG: () => {moveEnd(e.shiftKey)},
         KeyA: newDraftCard,
+        KeyC: closeCard,
         KeyD: () => {deleteCard(e.shiftKey)},
         KeyB: broadenCard,
         KeyN: narrowCard,
@@ -234,17 +312,18 @@ def Edit(items):
 
 def CardSeparator(min_cid, max_cid, count):
   <template>
-    <div mt-10px mb-10px>
+    <div mt-20px mb-20px mx-4px w-sub,100%,8px
+         border border-gray-bdx rounded-md>
       <button ref=(upButton) @click=(expandUp)
-              bg-info mx-4px w-sub,100%,8px
+              mx-4px w-sub,100%,8px mb-4px
               focus="outline outline-4 outline-primaryax">
         ...
       </button>
-      <div text-center>
-        [{count}](countSignal)
+      <div text-center bg-info font-bold text-lg text-primary-t>
+        [{count}](countSignal)张卡片
       </div>
       <button ref=(downButton) @click=(expandDown)
-              bg-info mx-4px w-sub,100%,8px
+              mx-4px w-sub,100%,8px mt-4px
               focus="outline outline-4 outline-primaryax">
         ...
       </button>
@@ -271,6 +350,7 @@ def CardSeparator(min_cid, max_cid, count):
       } else {
         countSignal.value = newCount;
         minCid = nextCid;
+        this.fryelement.scrollIntoView();
       }
     };
 
@@ -294,10 +374,15 @@ def CardSeparator(min_cid, max_cid, count):
       }
     };
 
+    Object.defineProperty(this, 'minCid', { get() {return minCid;}, set(value) {minCid = value;} });
+    Object.defineProperty(this, 'maxCid', { get() {return maxCid;}, set(value) {maxCid = value;} });
+    Object.defineProperty(this, 'count', { get() {return countSignal.peek();}, set(value) {countSignal.value = value} });
     this.isUp = false;
     this.focusUp = () => { upButton.focus(); this.isUp = true; };
     this.focusDown = () => { downButton.focus(); this.isUp = false; };
     this.focus = () => { this.focusUp(); };
+    this.isCard = false;
+    this.isSeparator = true;
   </script>
 
 
@@ -422,5 +507,7 @@ def EditorCard(card):
     }
 
     this.model = cardModel;
+    this.isCard = true;
+    this.isSeparator = false;
   </script>
 
