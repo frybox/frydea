@@ -16,10 +16,14 @@ def get_user():
     return user
 
 def new_changes(user_id, last_clid):
-    query = db.select(ChangeLog.card_id, ChangeLog.version)
+    query = db.select(ChangeLog.card_id, ChangeLog.create_time, ChangeLog.version)
     query = query.where(ChangeLog.user_id == user_id, ChangeLog.id > last_clid)
     query = query.order_by(ChangeLog.id)
-    return dict(db.session.execute(query).all())
+    result = {}
+    for card_id, create_time, version in db.session.execute(query).all():
+        result[card_id] = (create_time, version)
+    return [f'{key} {value[0].isoformat()} {value[1]}'
+            for key, value in result.items()]
 
 def max_clid():
     query = db.select(ChangeLog.id).order_by(desc(ChangeLog.id)).limit(1)
@@ -31,11 +35,11 @@ def index():
     query = db.select(Card).where(Card.user_id == user.id)
     query = query.order_by(desc(Card.id)).limit(5)
     cards = reversed(db.session.scalars(query).all())
-    query = db.select(Card.id).where(Card.user_id == user.id)
+    query = db.select(Card.id, Card.create_time).where(Card.user_id == user.id)
     query = query.order_by(Card.id)
-    cids = db.session.scalars(query).all()
+    cidtimes = db.session.execute(query).all()
     clid = max_clid()
-    args = dict(cards=cards, cids=cids, clid=clid)
+    args = dict(cards=cards, cidtimes=cidtimes, clid=clid)
     return html(App, args=args, title='Frydea', autoreload=False)
 
 @app.post('/cards')
@@ -47,13 +51,14 @@ def create_card():
     card = Card(user_id=user.id,
                 version=1,
                 content=content,
-                update_time=datetime.now())
+                create_time=datetime.now())
     db.session.add(card)
     db.session.flush()
     changelog = ChangeLog(user_id=user.id,
                           card_id=card.id,
                           version=card.version,
                           content=card.content,
+                          create_time=card.create_time,
                           update_time=card.update_time)
     db.session.add(changelog)
     db.session.flush()
@@ -97,6 +102,7 @@ def update_card(cid):
                               card_id=card.id,
                               version=card.version,
                               content=card.content,
+                              create_time=card.create_time,
                               update_time=card.update_time)
         db.session.add(card)
         db.session.add(changelog)

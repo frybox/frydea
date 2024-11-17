@@ -5,20 +5,22 @@ from frydea.models import Card as CardModel
 from frydea.web.preview import Preview
 from frydea.web.edit import Edit
 
-def App(cards=None, cids=None, clid=0):
+def App(cards=None, cidtimes=None, clid=0):
   cards = [] if not cards else cards
-  cids = [] if not cids else cids
+  cidtimes = [] if not cidtimes else cidtimes
   clid = clid if clid else 0
   items = []
-  cids1 = cids[:]
+  cids = [cid for cid, _create_time in cidtimes]
   for card in cards:
-    i = cids1.index(card.id)
+    i = cids.index(card.id)
     if i > 0:
-      items.append(dict(min_cid=cids1[0], max_cid=cids1[i-1], count=i))
+      items.append(dict(min_cid=cids[0], max_cid=cids[i-1], count=i))
     items.append(card)
-    cids1 = cids1[i+1:]
-  if cids1:
-    items.append(dict(min_cid=cids1[0], max_cid=cids1[-1], count=len(cids1)))
+    cids = cids[i+1:]
+  if cids:
+    items.append(dict(min_cid=cids[0], max_cid=cids[-1], count=len(cids)))
+
+  cidtimes = {cid: time.isoformat() for cid, time in cidtimes}
 
   <template>
     <div h-screen w-screen overflow-x-auto>
@@ -26,9 +28,12 @@ def App(cards=None, cids=None, clid=0):
       <Body {items} />
     </div>
   </template>
-  <script {cids} {clid}>
+  <script {cidtimes} {clid}>
     import { cardManager } from './frydea.js';
-    cardManager.cids = new Set(cids);
+    const cid2timeMap = cardManager.cid2timeMap;
+    Object.keys(cidtimes).forEach(id => {
+      cid2timeMap[parseInt(id)] = new Date(cidtimes[id]);
+    })
     cardManager.clid = clid;
   </script>
 

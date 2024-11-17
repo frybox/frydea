@@ -31,16 +31,18 @@ class Card(db.Model):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     version: Mapped[int] = mapped_column(comment='版本号')
     content: Mapped[str] = mapped_column(comment='Markdown内容')
-    update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
+    create_time: Mapped[datetime] = mapped_column(comment="卡片创建时间")
+    update_time: Mapped[datetime] = mapped_column(comment='卡片更新时间')
 
     user: Mapped['User'] = relationship(back_populates='cards')
     changelogs: Mapped[List['ChangeLog']] = relationship(back_populates='card')
 
-    def __init__(self, user_id=0, version=0, content='', update_time=None):
+    def __init__(self, user_id=0, version=0, content='', create_time=None, update_time=None):
         self.user_id = user_id
         self.version = version
         self.content = content
-        self.update_time = update_time if update_time else datetime.now()
+        self.create_time = create_time if create_time else datetime.now()
+        self.update_time = update_time if update_time else self.create_time 
 
     def __repr__(self):
         return f'<Card {self.number!r}>'
@@ -50,6 +52,7 @@ class Card(db.Model):
             'cid': self.id if self.id else 0,
             'version': self.version,
             'content': self.content,
+            'createTime': self.create_time.isoformat() if self.create_time else '',
             'updateTime': self.update_time.isoformat() if self.update_time else '',
         }
 
@@ -64,15 +67,17 @@ class ChangeLog(db.Model):
     card_id: Mapped[int] = mapped_column(ForeignKey('cards.id'))
     version: Mapped[int] = mapped_column(comment='版本号')
     content: Mapped[str] = mapped_column(comment='Markdown内容')
-    update_time: Mapped[datetime] = mapped_column(comment='当前版本创建时间')
+    create_time: Mapped[datetime] = mapped_column(comment='卡片创建时间')
+    update_time: Mapped[datetime] = mapped_column(comment='卡片更新时间')
 
     card: Mapped['Card'] = relationship(back_populates='changelogs')
 
-    def __init__(self, user_id, card_id, version, content, update_time):
+    def __init__(self, user_id, card_id, version, content, create_time, update_time):
         self.user_id = user_id
         self.card_id = card_id
         self.version = version
         self.content = content
+        self.create_time = create_time
         self.update_time = update_time
 
     def __repr__(self):

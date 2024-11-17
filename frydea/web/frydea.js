@@ -164,14 +164,14 @@ class CardModel {
 
 class CardManager {
   constructor() {
-    // 服务器上所有没被删除的该用户的服务端卡片id(cid)列表
-    this.cids = new Set();
+    // 服务器上所有没被删除的该用户的服务端卡片id(cid)到卡片创建时间的映射
+    this.cid2timeMap = new Map();
     // 与上述卡片id列表对应的最大changelog id
     this.clid = 0;
     // 客户端卡片ID(cardId)到卡片的映射
-    this.cardMap = {};
+    this.cardMap = new Map();
     // 服务端卡片ID(cid)到卡片的映射（服务器上存在的卡片）
-    this.cid2cardMap = {};
+    this.cid2cardMap = new Map();
     this._nextCardId = 1;
   }
 
@@ -187,7 +187,7 @@ class CardManager {
   // 当c.cid对应的卡片在cardManager中已经存在，不创建新卡片，直接返回已有卡片
   async createCard(c) {
     const {cid, version} = c;
-    let card = this.cid2cardMap[cid];
+    let card = this.cid2cardMap.get(cid);
     if (card) return card;
     card = new CardModel(c, this);
     if (cid > 0 && !version) {
@@ -204,10 +204,10 @@ class CardManager {
   }
 
   sliceLeft(cid, count) {
-    if (!this.cids.has(cid)) {
+    if (!this.cidtimes[cid]) {
       throw `Invalid cid ${cid}`;
     }
-    const cids = Array.from(this.cids);
+    const cids = Object.keys(this.cidtimes);
     cids.sort((a,b) => a-b);
     const end = cids.indexOf(cid) + 1;
     let start = end - count;
