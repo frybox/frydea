@@ -204,10 +204,10 @@ class CardManager {
   }
 
   sliceLeft(cid, count) {
-    if (!this.cidtimes[cid]) {
+    if (!this.cid2timeMap.has(cid)) {
       throw `Invalid cid ${cid}`;
     }
-    const cids = Object.keys(this.cidtimes);
+    const cids = Array.from(this.cid2timeMap.keys());
     cids.sort((a,b) => a-b);
     const end = cids.indexOf(cid) + 1;
     let start = end - count;
@@ -217,10 +217,10 @@ class CardManager {
   }
 
   sliceRight(cid, count) {
-    if (!this.cids.has(cid)) {
+    if (!this.cid2timeMap.has(cid)) {
       throw `Invalid cid ${cid}`;
     }
-    const cids = Array.from(this.cids);
+    const cids = Array.from(this.cid2timeMap.keys());
     cids.sort((a,b) => a-b);
     const start = cids.indexOf(cid);
     let end = start + count;
