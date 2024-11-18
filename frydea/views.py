@@ -22,7 +22,7 @@ def new_changes(user_id, last_clid):
     result = {}
     for card_id, create_time, version in db.session.execute(query).all():
         result[card_id] = (create_time, version)
-    return [f'{key} {value[0].isoformat()} {value[1]}'
+    return [(key, value[0].isoformat(), value[1])
             for key, value in result.items()]
 
 def max_clid():

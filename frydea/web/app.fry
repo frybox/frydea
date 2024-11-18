@@ -20,7 +20,7 @@ def App(cards=None, cidtimes=None, clid=0):
   if cids:
     items.append(dict(min_cid=cids[0], max_cid=cids[-1], count=len(cids)))
 
-  cidtimes = {cid: time.isoformat() for cid, time in cidtimes}
+  cidtimes = [(cid, time.isoformat()) for cid, time in cidtimes]
 
   <template>
     <div h-screen w-screen overflow-x-auto>
@@ -31,8 +31,8 @@ def App(cards=None, cidtimes=None, clid=0):
   <script {cidtimes} {clid}>
     import { cardManager } from './frydea.js';
     const cid2timeMap = cardManager.cid2timeMap;
-    Object.keys(cidtimes).forEach(id => {
-      cid2timeMap[parseInt(id)] = new Date(cidtimes[id]);
+    cidtimes.forEach(([cid, time]) => {
+      cid2timeMap.set(cid, new Date(time));
     })
     cardManager.clid = clid;
   </script>

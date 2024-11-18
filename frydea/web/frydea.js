@@ -37,9 +37,9 @@ class CardModel {
     // cardId是本地id，保证本地唯一，draft也有本地id
     this.cardId = manager.nextCardId;
     this.manager = manager;
-    this.manager.cardMap[this.cardId] = this;
+    this.manager.cardMap.set(this.cardId, this);
     if (this.cid > 0) {
-      this.manager.cid2cardMap[cid] = this;
+      this.manager.cid2cardMap.set(cid, this);
     }
   }
 
@@ -145,7 +145,7 @@ class CardModel {
     }
     this.cid = cid;
     if (this.cid > 0) {
-      this.manager.cid2cardMap[cid] = this;
+      this.manager.cid2cardMap.set(cid, this);
     }
     this.displayName.value = `${cid}`;
     this.version = version;
@@ -200,7 +200,7 @@ class CardManager {
   // 当已经在前端集中统一的状态中创建了卡片模型对象，通过卡片模型id(cardId)
   // 获取出来。
   getCard(cardId) {
-    return this.cardMap[cardId];
+    return this.cardMap.get(cardId);
   }
 
   sliceLeft(cid, count) {
@@ -231,17 +231,20 @@ class CardManager {
 
   async serverUpdate(clid, changes) {
     this.clid = clid;
-    const cids = Object.keys(changes)
-    if (cids.length === 0) {
-      return;
-    }
+    if (changes.length === 0) return;
+    const cid2time = new Map();
+    const cid2version = new Map();
+    changes.forEach(([cid, time, version]) => {
+      cid2time.set(cid, time);
+      cid2version.set(cid, version);
+    });
     let changed = [];
     let conflict = [];
-    for (const cid of cids) {
-      const version = changes[cid];
-      const card = this.cid2cardMap[cid];
+    for (const cid of cid2version.keys()) {
+      const version = cid2version.get(cid);
+      const card = this.cid2cardMap.get(cid);
       if (version < 0) {
-        this.cids.delete(cid);
+        this.cid2timeMap.delete(cid);
         if (card && card.isDirty) {
           card.conflict = true;
           conflict.push(card);
@@ -249,7 +252,7 @@ class CardManager {
           // TODO delete card
         }
       } else {
-        this.cids.add(cid);
+        this.cid2timeMap.set(cid, cid2time.get(cid));
         if (card && card.version < version) {
           changed.push(card);
         }
