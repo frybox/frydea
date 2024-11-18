@@ -4,6 +4,7 @@ from fryui import HCenter
 from frydea.models import Card as CardModel
 from frydea.web.preview import Preview
 from frydea.web.edit import Edit
+from frydea.web.index import Index
 
 def App(cards=None, cidtimes=None, clid=0):
   cards = [] if not cards else cards
