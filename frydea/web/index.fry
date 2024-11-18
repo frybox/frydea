@@ -1,0 +1,215 @@
+from fryhcs import Element
+from fryui import Icon
+from frydea.models import Card
+
+def YearGroup(begin_year, card_counts):
+    const names = [str(begin_year)];
+    for (let i=1; i<card_counts.length; i++) {
+        let year = f'{begin_year + i}';
+        names.append(year[2:]);
+    }
+    bgs = ['bg-blue-1', 'bg-blue-2', 'bg-blue-3', 'bg-blue-4', 'bg-blue-5', 'bg-blue-6', 'bg-blue-7', 'bg-blue-8', 'bg-blue-9', 'bg-blue-10',]
+    <template>
+      <div flex >
+      </div>
+    </template>
+def Index():
+  <template>
+    <div ref=(container)
+         box-border h-full bg-secondary-bgx
+         h-full overflow-auto
+         @keydown=(handleCardKey)>
+      <div>
+      </div>
+      <div>
+      </div>
+      <PreviewCard frytemplate ref=(template) {card} />
+    </div>
+  </template>
+  <script>
+    import { cardManager } from './frydea.js';
+
+    const yearMap = new Map();
+
+    for (const cid of cardManager.cid2timeMap.keys()) {
+        const time = cardManager.cid2timeMap.get(cid);
+        const year = time.getFullYear();
+        let dayMap;
+        if (!yearMap.has(year)) {
+            dayMap = new Map();
+            yearMap.set(year, dayMap);
+        } else {
+            dayMap = yearMap.get(year);
+        }
+        const day = `${year}/${time.getMonth()+1}/${time.getDate()}`;
+        let cidList;
+        if (!dayMap.has(day)) {
+            cidList = [];
+            dayMap.set(day, cidList);
+        } else {
+            cidList = dayMap.get(day);
+        }
+        cidList.push(cid);
+    }
+    const previewCards = [];
+    const newCard = async ({card, cardId}) => {
+      const newcard = await template.create({card, cardId});
+      container.appendChild(newcard.fryelement);
+      previewCards.push(newcard);
+      newcard.fryelement.scrollIntoView();
+    }
+    this.preview = async ({card, cardId}) => {
+      for (const pc of previewCards) {
+        if (cardId === pc.model.cardId) {
+            pc.fryelement.scrollIntoView();
+            return
+        }
+      }
+      await newCard({card, cardId});
+    }
+    this.closest = (y) => {
+      let delta = 999999999;
+      let card = null;
+      for (const c of previewCards) {
+        const rect = c.fryelement.getBoundingClientRect();
+        const middle = rect.top + rect.height/2;
+        const d = Math.abs(middle-y);
+        if (d < delta) {
+          delta = d;
+          card = c;
+        }
+      }
+      return card;
+    }
+    const handleCardKey = (e) => {
+      console.log(e);
+      if (!e.target.frycomponents) {
+        return;
+      }
+      let currentCard = e.target.frycomponents[0];
+      const closestEditCard = () => {
+        if (this.isReady) {
+          let rect = currentCard.fryelement.getBoundingClientRect();
+          console.log(rect);
+          let middle = rect.top + rect.height/2;
+          return this.g.editArea.closest(middle);
+        }
+      }
+      const moveDown = () => {
+        const index = previewCards.indexOf(currentCard);
+        if (index >= 0 && index+1 < previewCards.length) {
+          currentCard = previewCards[index+1];
+          currentCard.focus();
+        }
+      }
+      const moveUp = () => {
+        const index = previewCards.indexOf(currentCard);
+        if (index > 0) {
+          currentCard = previewCards[index-1];
+          currentCard.focus();
+        }
+      }
+      const moveLeft = () => {
+        const editCard = closestEditCard();
+        if (editCard) editCard.focus();
+        console.log('moveLeft');
+      }
+      const closeCard = (all=false) => {
+        let nextCard;
+        if (all) {
+            nextCard = closestEditCard();
+            for (const card of previewCards) {
+                card.close();
+            }
+            previewCards.length = 0;
+        } else {
+            const index = previewCards.indexOf(currentCard);
+            if (index > 0) {
+                nextCard = previewCards[index - 1];
+            } else if (index < previewCards.length - 1) {
+                nextCard = previewCards[index + 1];
+            } else {
+                nextCard = closestEditCard();
+            }
+            currentCard.close();
+            previewCards.splice(index, 1);
+        }
+        if (nextCard) nextCard.focus();
+        console.log('closeCard');
+      }
+      const broadenCard = () => {
+        this.fryparent.narrow();
+      }
+      const narrowCard = () => {
+        this.fryparent.broaden();
+      }
+      const cardKeyMap = {
+        KeyJ: moveDown,
+        ArrowDown: moveDown,
+        KeyK: moveUp,
+        ArrowUp: moveUp,
+        KeyH: moveLeft,
+        ArrowLeft: moveLeft,
+        KeyC: () => closeCard(e.shiftKey),
+        KeyD: () => closeCard(e.shiftKey),
+        KeyB: broadenCard,
+        KeyN: narrowCard,
+      }
+      if (e.code in cardKeyMap) {
+        cardKeyMap[e.code]();
+      }
+    };
+  </script>
+
+def PreviewCard(card):
+  time = card.update_time.strftime('%Y-%m-%d %H:%M')
+  cid = card.id if card.id else 0
+  <template>
+    <div mx-4px w-sub,100%,8px min-h-200px mb-20px
+         border border-gray-bdx rounded-md
+         focus="outline outline-4 outline-primaryax"
+         flex flex-col
+         tabindex="-1"
+         ref=(elContainer)>
+      <div flex-none h-30px w-full
+           flex justify-between 
+           bg-gray-el border border-gray-bdx>
+        <div flex>
+          <Icon type="file-text"/>
+          <p>[{cid}](cardModel.displayCid)</p>
+        </div>
+        <p>[{time}](cardModel.displayTime)</p>
+      </div>
+      <div ref=(elContent)
+           flex-auto w-full
+           bg-secondary-bg overflow-hidden font-mono>
+      </div>
+      <div flex-none w-full h-30px
+           bg-gray-el border border-gray-bdx>
+      </div>
+    </div>
+  </template>
+  <script card={card.todict()} cardId={0}>
+    import * as dayjs from "dayjs";
+    import { marked } from "marked";
+    import { cardManager } from "./frydea.js";
+    import { effect } from "fryhcs";
+
+    let cardModel;
+    if (cardId) {
+      cardModel = cardManager.getCard(cardId);
+    } else {
+      cardModel = await cardManager.createCard(card);
+    }
+
+    this.dispose = effect(() => {
+      elContent.innerHTML = marked(cardModel.content.value);
+    });
+    this.focus = () => {
+      elContainer.focus();
+    }
+    this.close = () => {
+      elContainer.remove();
+    }
+    this.model = cardModel;
+  </script>

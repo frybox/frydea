@@ -78,9 +78,3 @@ def Main(items):
   <script>
     Object.assign(this.g, {indexArea, previewArea, editArea});
   </script>
-
-def Index():
-  <template>
-    <div bg-secondary-bga>
-    </div>
-  </template>
