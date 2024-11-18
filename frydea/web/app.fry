@@ -21,18 +21,44 @@ def App(cards=None, cidtimes=None, clid=0):
   if cids:
     items.append(dict(min_cid=cids[0], max_cid=cids[-1], count=len(cids)))
 
-  cidtimes = [(cid, time.isoformat()) for cid, time in cidtimes]
+  cid2timeList = [(cid, time.isoformat()) for cid, time in cidtimes]
+
+  now = datetime.now()
+  years = {}
+  days = {}
+  for cid, time in cidtimes:
+    year = time.year
+    if year not in years:
+      years[year] = 1
+    else:
+      years[year] += 1
+    if year == now.year:
+      day = f"{year}/{time.month}/{time.day}"
+      if day not in days:
+        days[day] = 1
+      else:
+        days[day] += 1
+  first_years = set()
+  for year in years.keys():
+    first_years.add(year - year % 10)
+  first_years = sorted(first_years)
+  year_counts = []
+  for first_year in first_years:
+    last_year = first_year + 10
+    counts = [years[year] if year in years else 0 for year in range(first_year, last_year)]
+    year_counts.append((first_year, counts))
+  day_count = [(day, count) for day, count in days.items()]
 
   <template>
     <div h-screen w-screen overflow-x-auto>
       <Header />
-      <Body {items} />
+      <Body {year_counts} {day_count} {items} />
     </div>
   </template>
-  <script {cidtimes} {clid}>
+  <script {cid2timeList} {clid}>
     import { cardManager } from './frydea.js';
     const cid2timeMap = cardManager.cid2timeMap;
-    cidtimes.forEach(([cid, time]) => {
+    cid2timeList.forEach(([cid, time]) => {
       cid2timeMap.set(cid, new Date(time));
     })
     cardManager.clid = clid;
@@ -48,11 +74,11 @@ def Header():
   </script>
 
 
-def Body(items):
+def Body(year_counts, day_count, items):
   <template>
     <div flex mt-30px h-sub,100%,30px w-full>
       <SideBar/>
-      <Main {items} />
+      <Main {year_counts} {day_count} {items} />
     </div>
   </template>
   <script>
@@ -66,8 +92,8 @@ def SideBar():
   <script>
   </script>
 
-def Main(items):
-  left = <Index ref=(indexArea) />
+def Main(year_counts, day_count, items):
+  left = <Index ref=(indexArea) {year_counts} {day_count} />
   right = <Preview ref=(previewArea) />
   <template>
     <div box-border w-sub,100%,30px mx-auto h-full bg-gray-bg>

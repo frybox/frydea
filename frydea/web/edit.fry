@@ -123,6 +123,10 @@ def Edit(items):
         }
       }
       const moveLeft = () => {
+        let rect = currentItem.fryelement.getBoundingClientRect();
+        let middle = rect.top + rect.height/2;
+        const indexItem = this.g.indexArea.closest(middle);
+        if (indexItem) indexItem.focus();
         console.log('moveLeft');
       }
       const moveRight = () => {

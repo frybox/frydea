@@ -3,27 +3,69 @@ from fryui import Icon
 from frydea.models import Card
 
 def YearGroup(begin_year, card_counts):
-    const names = [str(begin_year)];
-    for (let i=1; i<card_counts.length; i++) {
-        let year = f'{begin_year + i}';
-        names.append(year[2:]);
+  names = [str(begin_year)];
+  years = [begin_year]
+  for i in range(1, len(card_counts)):
+      year = begin_year + i
+      name = str(year)
+      years.append(year)
+      names.append(name[2:])
+  allbg = ['bg-blue-1', 'bg-blue-3', 'bg-blue-5', 'bg-blue-7', 'bg-blue-9',]
+  bgs = [[allbg[int(count/10) if count < 50 else 4]] for count in card_counts]
+  <template>
+    <div flex gap-1>
+      {<span refall=(elYears) {*bgs[i]}
+             border rounded-md 
+             text-sm
+             tabindex="-1"
+             focus="outline outline-4 outline-primaryax">
+         {names[i]}
+       </span>
+       for i in range(len(names))}
+    </div>
+  </template>
+  <script {years}>
+    this.focus = () => {
+      if (elYears && elYears.length > 0) {
+        elYears[elYears.length-1].focus();
+      }
+    };
+  </script>
+
+def DayIndex(day, count):
+  <template>
+    <li tabindex="-1"
+        focus="outline outline-4 outline-primaryax">
+      <span mr-5px text-sm>[{day}](daySignal)</span>
+      <span text-info text-xs>[{count}](countSignal)</span>
+     </li>
+  </template>
+  <script {day} {count}>
+    import {signal} from "fryhcs";
+    const daySignal = signal(day);
+    const countSignal = signal(count);
+    this.focus = () => { this.fryelement.focus(); };
+    this.update = (day, count) => {
+      daySignal.value = day;
+      countSignal.value = count;
     }
-    bgs = ['bg-blue-1', 'bg-blue-2', 'bg-blue-3', 'bg-blue-4', 'bg-blue-5', 'bg-blue-6', 'bg-blue-7', 'bg-blue-8', 'bg-blue-9', 'bg-blue-10',]
-    <template>
-      <div flex >
-      </div>
-    </template>
-def Index():
+  </script>
+    
+
+def Index(year_counts, day_count):
   <template>
     <div ref=(container)
-         box-border h-full bg-secondary-bgx
-         h-full overflow-auto
+         box-border bg-secondary-bgx
+         p-4px h-full overflow-auto
          @keydown=(handleCardKey)>
       <div>
+        {<YearGroup refall=(yearGroups) {begin_year} {card_counts} />
+         for begin_year, card_counts in year_counts}
       </div>
-      <div>
-      </div>
-      <PreviewCard frytemplate ref=(template) {card} />
+      <ul mt-15px>
+        {<DayIndex refall=(dayIndexes) {day} {count} />
+         for day, count in day_count}
+      </ul>
     </div>
   </template>
   <script>
@@ -50,36 +92,6 @@ def Index():
             cidList = dayMap.get(day);
         }
         cidList.push(cid);
-    }
-    const previewCards = [];
-    const newCard = async ({card, cardId}) => {
-      const newcard = await template.create({card, cardId});
-      container.appendChild(newcard.fryelement);
-      previewCards.push(newcard);
-      newcard.fryelement.scrollIntoView();
-    }
-    this.preview = async ({card, cardId}) => {
-      for (const pc of previewCards) {
-        if (cardId === pc.model.cardId) {
-            pc.fryelement.scrollIntoView();
-            return
-        }
-      }
-      await newCard({card, cardId});
-    }
-    this.closest = (y) => {
-      let delta = 999999999;
-      let card = null;
-      for (const c of previewCards) {
-        const rect = c.fryelement.getBoundingClientRect();
-        const middle = rect.top + rect.height/2;
-        const d = Math.abs(middle-y);
-        if (d < delta) {
-          delta = d;
-          card = c;
-        }
-      }
-      return card;
     }
     const handleCardKey = (e) => {
       console.log(e);
@@ -109,10 +121,13 @@ def Index():
           currentCard.focus();
         }
       }
-      const moveLeft = () => {
-        const editCard = closestEditCard();
-        if (editCard) editCard.focus();
-        console.log('moveLeft');
+      const moveRight = () => {
+        let rect = currentItem.fryelement.getBoundingClientRect();
+        console.log(rect);
+        let middle = rect.top + rect.height/2;
+        const previewCard = this.g.previewArea.closest(middle);
+        if (previewCard) previewCard.focus();
+        console.log('moveRight');
       }
       const closeCard = (all=false) => {
         let nextCard;
@@ -148,8 +163,8 @@ def Index():
         ArrowDown: moveDown,
         KeyK: moveUp,
         ArrowUp: moveUp,
-        KeyH: moveLeft,
-        ArrowLeft: moveLeft,
+        KeyL: moveRight,
+        ArrowRight: moveRight,
         KeyC: () => closeCard(e.shiftKey),
         KeyD: () => closeCard(e.shiftKey),
         KeyB: broadenCard,
@@ -159,57 +174,28 @@ def Index():
         cardKeyMap[e.code]();
       }
     };
-  </script>
 
-def PreviewCard(card):
-  time = card.update_time.strftime('%Y-%m-%d %H:%M')
-  cid = card.id if card.id else 0
-  <template>
-    <div mx-4px w-sub,100%,8px min-h-200px mb-20px
-         border border-gray-bdx rounded-md
-         focus="outline outline-4 outline-primaryax"
-         flex flex-col
-         tabindex="-1"
-         ref=(elContainer)>
-      <div flex-none h-30px w-full
-           flex justify-between 
-           bg-gray-el border border-gray-bdx>
-        <div flex>
-          <Icon type="file-text"/>
-          <p>[{cid}](cardModel.displayCid)</p>
-        </div>
-        <p>[{time}](cardModel.displayTime)</p>
-      </div>
-      <div ref=(elContent)
-           flex-auto w-full
-           bg-secondary-bg overflow-hidden font-mono>
-      </div>
-      <div flex-none w-full h-30px
-           bg-gray-el border border-gray-bdx>
-      </div>
-    </div>
-  </template>
-  <script card={card.todict()} cardId={0}>
-    import * as dayjs from "dayjs";
-    import { marked } from "marked";
-    import { cardManager } from "./frydea.js";
-    import { effect } from "fryhcs";
-
-    let cardModel;
-    if (cardId) {
-      cardModel = cardManager.getCard(cardId);
-    } else {
-      cardModel = await cardManager.createCard(card);
+    this.closest = (y) => {
+      let delta = 999999999;
+      let item = null;
+      for (const i of yearGroups) {
+        const rect = i.fryelement.getBoundingClientRect();
+        const middle = rect.top + rect.height/2;
+        const d = Math.abs(middle-y);
+        if (d < delta) {
+          delta = d;
+          item = i;
+        }
+      }
+      for (const i of dayIndexes) {
+        const rect = i.fryelement.getBoundingClientRect();
+        const middle = rect.top + rect.height/2;
+        const d = Math.abs(middle-y);
+        if (d < delta) {
+          delta = d;
+          item = i;
+        }
+      }
+      return item;
     }
-
-    this.dispose = effect(() => {
-      elContent.innerHTML = marked(cardModel.content.value);
-    });
-    this.focus = () => {
-      elContainer.focus();
-    }
-    this.close = () => {
-      elContainer.remove();
-    }
-    this.model = cardModel;
   </script>
