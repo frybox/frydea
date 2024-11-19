@@ -39,12 +39,13 @@ def App(cards=None, cidtimes=None, clid=0):
       else:
         days[day] += 1
   first_years = set()
+  group_size = 5 if len(years) < 20 else 10
   for year in years.keys():
-    first_years.add(year - year % 10)
+    first_years.add(year - year % group_size)
   first_years = sorted(first_years)
   year_counts = []
   for first_year in first_years:
-    last_year = first_year + 10
+    last_year = first_year + group_size
     counts = [years[year] if year in years else 0 for year in range(first_year, last_year)]
     year_counts.append((first_year, counts))
   day_count = [(day, count) for day, count in days.items()]

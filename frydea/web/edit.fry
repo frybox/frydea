@@ -344,7 +344,7 @@ def CardSeparator(min_cid, max_cid, count):
               focus="outline outline-4 outline-primaryax">
         ...
       </button>
-      <div text-center bg-info font-bold text-lg text-info-tx>
+      <div text-center font-bold text-lg text-info-tx>
         [{count}](countSignal)张卡片
       </div>
       <button ref=(downButton) @click=(expandDown)
@@ -519,6 +519,16 @@ def EditorCard(card):
     }
 
     createEditor();
+
+    /*
+    CodeMirror.on(editor.cm, 'vim-mode-change', (e) => {
+      if (e.mode === 'insert' || e.mode === 'replace') {
+        editor.contentDOM.contentEditable = true;
+      } else {
+        editor.contentDOM.remoteAttribute('contenteditable');
+      }
+    })
+    */
 
     this.toVimEditor = () => {
       editor.focus();

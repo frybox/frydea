@@ -127,7 +127,7 @@ def PreviewCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
   cid = card.id if card.id else 0
   <template>
-    <div mx-4px w-sub,100%,8px min-h-200px mb-20px
+    <div mx-4px w-sub,100%,8px mb-20px
          border border-gray-bdx rounded-md
          focus="outline outline-4 outline-primaryax"
          flex flex-col
@@ -135,6 +135,7 @@ def PreviewCard(card):
          ref=(elContainer)>
       <div flex-none h-30px w-full
            flex justify-between 
+           text-sm
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
@@ -145,9 +146,6 @@ def PreviewCard(card):
       <div ref=(elContent)
            flex-auto w-full
            bg-secondary-bg overflow-hidden font-mono>
-      </div>
-      <div flex-none w-full h-30px
-           bg-gray-el border border-gray-bdx>
       </div>
     </div>
   </template>
