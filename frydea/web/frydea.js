@@ -140,8 +140,8 @@ class CardModel {
   // 内部方法，load/fetch/save时，根据服务器响应修改模型内容
   serverUpdate(card, flush=false) {
     const { cid, content, version, updateTime } = card;
-    if (version !== this.version + 1) {
-      throw `Invalid card ${cid} version: ${version} != ${this.version} + 1`;
+    if (version < this.version) {
+      throw `Invalid card ${cid} version: ${version} < ${this.version}`;
     }
     this.cid = cid;
     if (this.cid > 0) {
@@ -166,6 +166,7 @@ class CardManager {
   constructor() {
     // 服务器上所有没被删除的该用户的服务端卡片id(cid)到卡片创建时间的映射
     this.cid2timeMap = new Map();
+    this.yearMap = new Map();
     // 与上述卡片id列表对应的最大changelog id
     this.clid = 0;
     // 客户端卡片ID(cardId)到卡片的映射
@@ -177,6 +178,34 @@ class CardManager {
 
   get nextCardId() {
     return this._nextCardId ++;
+  }
+
+  init(cid2timeList, clid) {
+    cid2timeList.forEach(([cid, time]) => {
+      this.cid2timeMap.set(cid, new Date(time));
+    })
+    this.clid = clid;
+
+    for (const cid of this.cid2timeMap.keys()) {
+        const time = this.cid2timeMap.get(cid);
+        const year = time.getFullYear();
+        let dayMap;
+        if (!this.yearMap.has(year)) {
+            dayMap = new Map();
+            this.yearMap.set(year, dayMap);
+        } else {
+            dayMap = this.yearMap.get(year);
+        }
+        const day = dayjs(time).format('YYYY-MM-DD');
+        let cidList;
+        if (!dayMap.has(day)) {
+            cidList = [];
+            dayMap.set(day, cidList);
+        } else {
+            cidList = dayMap.get(day);
+        }
+        cidList.push(cid);
+    }
   }
 
   // 如下三种情况调用该接口：
@@ -227,6 +256,25 @@ class CardManager {
     end = end > cids.length ? cids.length : end;
     const nextCid = end === cids.length ? 0 : cids[end];
     return [cids.slice(start, end), nextCid];
+  }
+
+  sliceBetween(minCid, maxCid) {
+    if (!this.cid2timeMap.has(minCid)) {
+      throw `Invalid cid ${minCid}`;
+    }
+    if (!this.cid2timeMap.has(maxCid)) {
+      throw `Invalid cid ${maxCid}`;
+    }
+    if (maxCid < minCid) {
+      const cid = minCid;
+      minCid = maxCid;
+      maxCid = cid;
+    }
+    const cids = Array.from(this.cid2timeMap.keys());
+    cids.sort((a,b) => a-b);
+    const start = cids.indexOf(minCid);
+    const end = cids.indexOf(maxCid) + 1;
+    return cids.slice(start, end);
   }
 
   async serverUpdate(clid, changes) {

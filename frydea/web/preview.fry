@@ -76,6 +76,15 @@ def Preview():
         if (editCard) editCard.focus();
         console.log('moveLeft');
       }
+      const moveEnd = (last=flase) => {
+        if (previewCards.length > 0) {
+          if (last) {
+            previewCards[previewCards.length-1].focus();
+          } else {
+            previewCards[0].focus();
+          }
+        }
+      }
       const closeCard = (all=false) => {
         let nextCard;
         if (all) {
@@ -112,6 +121,7 @@ def Preview():
         ArrowUp: moveUp,
         KeyH: moveLeft,
         ArrowLeft: moveLeft,
+        KeyG: () => moveEnd(e.shiftKey),
         KeyC: () => closeCard(e.shiftKey),
         KeyD: () => closeCard(e.shiftKey),
         KeyB: broadenCard,
@@ -139,7 +149,7 @@ def PreviewCard(card):
            bg-gray-el border border-gray-bdx>
         <div flex>
           <Icon type="file-text"/>
-          <p>[{cid}](cardModel.displayCid)</p>
+          <p>[{cid}](cardModel.displayName)</p>
         </div>
         <p>[{time}](cardModel.displayTime)</p>
       </div>

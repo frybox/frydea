@@ -23,46 +23,15 @@ def App(cards=None, cidtimes=None, clid=0):
 
   cid2timeList = [(cid, time.isoformat()) for cid, time in cidtimes]
 
-  now = datetime.now()
-  years = {}
-  days = {}
-  for cid, time in cidtimes:
-    year = time.year
-    if year not in years:
-      years[year] = 1
-    else:
-      years[year] += 1
-    if year == now.year:
-      day = f"{year}/{time.month}/{time.day}"
-      if day not in days:
-        days[day] = 1
-      else:
-        days[day] += 1
-  first_years = set()
-  group_size = 5 if len(years) < 20 else 10
-  for year in years.keys():
-    first_years.add(year - year % group_size)
-  first_years = sorted(first_years)
-  year_counts = []
-  for first_year in first_years:
-    last_year = first_year + group_size
-    counts = [years[year] if year in years else 0 for year in range(first_year, last_year)]
-    year_counts.append((first_year, counts))
-  day_count = [(day, count) for day, count in days.items()]
-
   <template>
     <div h-screen w-screen overflow-x-auto>
       <Header />
-      <Body {year_counts} {day_count} {items} />
+      <Body {cidtimes} {items} />
     </div>
   </template>
   <script {cid2timeList} {clid}>
     import { cardManager } from './frydea.js';
-    const cid2timeMap = cardManager.cid2timeMap;
-    cid2timeList.forEach(([cid, time]) => {
-      cid2timeMap.set(cid, new Date(time));
-    })
-    cardManager.clid = clid;
+    cardManager.init(cid2timeList, clid);
   </script>
 
 
@@ -75,11 +44,11 @@ def Header():
   </script>
 
 
-def Body(year_counts, day_count, items):
+def Body(cidtimes, items):
   <template>
     <div flex mt-30px h-sub,100%,30px w-full>
       <SideBar/>
-      <Main {year_counts} {day_count} {items} />
+      <Main {cidtimes} {items} />
     </div>
   </template>
   <script>
@@ -93,8 +62,8 @@ def SideBar():
   <script>
   </script>
 
-def Main(year_counts, day_count, items):
-  left = <Index ref=(indexArea) {year_counts} {day_count} />
+def Main(cidtimes, items):
+  left = <Index ref=(indexArea) {cidtimes} />
   right = <Preview ref=(previewArea) />
   <template>
     <div box-border w-sub,100%,30px mx-auto h-full bg-gray-bg>

@@ -1,8 +1,9 @@
 from fryhcs import Element
 from fryui import Icon
 from frydea.models import Card
+from datetime import datetime
 
-def YearGroup(begin_year, card_counts):
+def YearGroup(begin_year, card_counts, current_year):
   names = [str(begin_year)];
   years = [begin_year]
   for i in range(1, len(card_counts)):
@@ -11,10 +12,13 @@ def YearGroup(begin_year, card_counts):
       years.append(year)
       names.append(name[2:])
   allbg = ['bg-blue-1', 'bg-blue-3', 'bg-blue-5', 'bg-blue-7', 'bg-blue-9',]
-  bgs = [[allbg[int(count/10) if count < 50 else 4]] for count in card_counts]
+  styles = [[allbg[int(count/10) if count < 50 else 4]] for count in card_counts]
+  current_index = current_year - begin_year
+  if current_index >= 0 and current_index < len(card_counts):
+    styles[current_index] += ['outline', 'outline-2', 'outline-primaryax']
   <template>
     <div flex gap-1>
-      {<span refall=(elYears) {*bgs[i]} cursor-pointer 
+      {<span refall=(elYears) {*styles[i]} cursor-pointer 
              border border-gray-bdx rounded-md p-1
              text-sm
              tabindex="-1"
@@ -35,6 +39,12 @@ def YearGroup(begin_year, card_counts):
     };
     this.indexOf = (element) => {
         return elYears.indexOf(element);
+    }
+    this.yearOf = (element) => {
+      const index = elYears.indexOf(element);
+      if (index >= 0) {
+        return years[index];
+      }
     }
     this.turnLeft = (current) => {
         const index = elYears.indexOf(current);
@@ -57,7 +67,7 @@ def YearGroup(begin_year, card_counts):
     this.isDay = false;
   </script>
 
-def DayIndex(day, count):
+def DayIndex(day='', count=0):
   <template>
     <li cursor-pointer
         tabindex="-1"
@@ -75,55 +85,66 @@ def DayIndex(day, count):
       daySignal.value = day;
       countSignal.value = count;
     }
+    this.updateCount = (count) => {
+      countSignal.value = count;
+    }
+    this.day = () => daySignal.peek();
+    this.count = () => countSignal.peek();
     this.isYear = false;
     this.isDay = true;
   </script>
     
 
-def Index(year_counts, day_count):
+def Index(cidtimes):
+  current_year = datetime.now().year
+  years = {}
+  days = {}
+  for cid, time in cidtimes:
+    year = time.year
+    if year not in years:
+      years[year] = 1
+    else:
+      years[year] += 1
+    if year == current_year:
+      day = f"{year}-{time.month:02}-{time.day:02}"
+      if day not in days:
+        days[day] = 1
+      else:
+        days[day] += 1
+  first_years = set()
+  group_size = 5 if len(years) < 20 else 10
+  for year in years.keys():
+    first_years.add(year - year % group_size)
+  first_years = sorted(first_years)
+  year_counts = []
+  for first_year in first_years:
+    last_year = first_year + group_size
+    counts = [years[year] if year in years else 0 for year in range(first_year, last_year)]
+    year_counts.append((first_year, counts))
+  day_count = [(day, count) for day, count in days.items()]
+
   <template>
     <div ref=(container)
          box-border bg-secondary-bgx
          p-4px h-full overflow-auto
          @keydown=(handleIndexKey)>
       <div>
-        {<YearGroup refall=(yearGroups) {begin_year} {card_counts} />
+        {<YearGroup refall=(yearGroups) {begin_year} {card_counts} {current_year} />
          for begin_year, card_counts in year_counts}
       </div>
-      <ul mt-15px>
+      <DayIndex frytemplate ref=(dayTemplate) />
+      <ul ref=(dayContainer) mt-15px>
         {<DayIndex refall=(dayIndexes) {day} {count} />
          for day, count in day_count}
       </ul>
     </div>
   </template>
-  <script>
+  <script selectedYear={current_year}>
     import { cardManager } from './frydea.js';
 
     yearGroups = yearGroups ? yearGroups : [];
     dayIndexes = dayIndexes ? dayIndexes : [];
 
-    const yearMap = new Map();
-
-    for (const cid of cardManager.cid2timeMap.keys()) {
-        const time = cardManager.cid2timeMap.get(cid);
-        const year = time.getFullYear();
-        let dayMap;
-        if (!yearMap.has(year)) {
-            dayMap = new Map();
-            yearMap.set(year, dayMap);
-        } else {
-            dayMap = yearMap.get(year);
-        }
-        const day = `${year}/${time.getMonth()+1}/${time.getDate()}`;
-        let cidList;
-        if (!dayMap.has(day)) {
-            cidList = [];
-            dayMap.set(day, cidList);
-        } else {
-            cidList = dayMap.get(day);
-        }
-        cidList.push(cid);
-    }
     const domComponent = (element) => {
       while (element) {
         if (element.frycomponents && element.frycomponents.length > 0) {
@@ -133,9 +154,60 @@ def Index(year_counts, day_count):
         element = element.parentElement;
       }
     }
+
+    const removeDay = (day) => {
+      const index = dayIndexes.indexOf(day);
+      if (index >= 0) {
+        dayIndexes.splice(index, 1);
+        day.fryelement.remove();
+      }
+    }
+
+    const appendDay = async (args) => {
+      const day = await dayTemplate.create(args);
+      dayContainer.appendChild(day.fryelement);
+      dayIndexes.push(day);
+    }
+
     const handleIndexKey = (e) => {
       console.log(e);
       let currentItem = domComponent(e.target);
+      const selectItem = async () => {
+        if (currentItem.isYear) {
+          const year = currentItem.yearOf(e.target);
+          if (year === selectedYear) return;
+          selectedYear = year;
+          const dayMap = cardManager.yearMap.get(year);
+          const days = dayMap ? Array.from(dayMap.keys()) : [];
+          days.sort();
+          if (dayIndexes.length > days.length) {
+            for (let i=0; i<dayIndexes.length-days.length; i++) {
+              removeDay(dayIndexes[0]);
+            }
+          }
+          for (let i=0; i<dayIndexes.length; i++) {
+            const day = days[i];
+            const count = dayMap.get(day).length;
+            dayIndexes.update(day, count);
+          }
+          for (let i=dayIndexes.length; i<days.length; i++) {
+            const day = days[i];
+            const count = dayMap.get(day).length;
+            await appendDay({day, count});
+          }
+        } else {
+          const dayMap = cardManager.yearMap.get(selectedYear);
+          if (dayMap) {
+            const day = currentItem.day();
+            let cids = dayMap.get(day);
+            cids = cids ? cids : [];
+            cids.sort((a,b)=>b-a);
+            for (const cid of cids) {
+              await this.g.editArea.openCard(cid);
+            }
+          }
+        }
+      }
       const moveDown = () => {
         if (currentItem.isYear) {
             const yearIndex = currentItem.indexOf(e.target);
@@ -175,6 +247,23 @@ def Index(year_counts, day_count):
             }
         }
       }
+      const moveEnd = (last=flase) => {
+        if (last) {
+          if (dayIndexes.length > 0) {
+            const len = dayIndexes.length;
+            dayIndexes[len-1].focus();
+          } else if (yearGroups.length > 0) {
+            const len = yearGroups.length;
+            yearGroups[len-1].focus(-1);
+          }
+        } else {
+          if (yearGroups.length > 0) {
+            yearGroups[0].focus(0);
+          } else if (dayIndexes.length > 0) {
+            dayIndexes[0].focus();
+          }
+        }
+      }
       const moveLeft = () => {
         if (currentItem.isYear) {
             currentItem.turnLeft(e.target);
@@ -198,6 +287,7 @@ def Index(year_counts, day_count):
         this.fryparent.broaden();
       }
       const indexKeyMap = {
+        Enter: selectItem,
         KeyJ: moveDown,
         ArrowDown: moveDown,
         KeyK: moveUp,
@@ -206,6 +296,7 @@ def Index(year_counts, day_count):
         ArrowLeft: moveLeft,
         KeyL: moveRight,
         ArrowRight: moveRight,
+        KeyG: () => moveEnd(e.shiftKey),
         KeyB: broadenIndex,
         KeyN: narrowIndex,
       }

@@ -30,8 +30,9 @@ def Edit(items):
     document.addEventListener('keydown', function(e) {
         const active = document.activeElement;
         const comp = domComponent(active);
-        if (comp && comp.fryparent.fryname === 'Edit') {
-          // 当前焦点在Edit区域中，不处理
+        if (comp && (comp.fryparent.fryname === 'Edit' ||
+                     comp.fryparent.fryname === 'Index')) {
+          // 当前焦点在Edit区域或Index区域中，不处理
           return;
         }
         if ((e.code === 'Escape' || e.code === 'Enter') && (!active || !active.frycomponents)) {
@@ -297,6 +298,45 @@ def Edit(items):
       return newitem;
     };
 
+    this.openCard = async (cid) => {
+      for (const item of editItems) {
+        if (item.isCard) {
+          if (item.model.cid === cid) {
+            item.focus();
+            return;
+          }
+        } else {
+          if (cid >= item.minCid && cid <= item.maxCid) {
+            const prevCids = cardManager.sliceBetween(item.minCid, cid);
+            const nextCids = cardManager.sliceBetween(cid, item.maxCid);
+            let card;
+            if (prevCids.length === 1 && nextCids.length === 1) {
+              card = await this.newCardBefore({card:{cid}}, item);
+              this.removeItem(item);
+            } else if (prevCids.length === 1) {
+              card = await this.newCardBefore({card:{cid}}, item);
+              item.minCid = nextCids[1];
+              item.count = nextCids.length - 1;
+            } else if (nextCids.length === 1) {
+              item.maxCid = prevCids[prevCids.length-2];
+              item.count = prevCids.length - 1;
+              card = await this.newCardAfter({card:{cid}}, item);
+            } else {
+              const count = prevCids.length-1;
+              const minCid = prevCids[0];
+              const maxCid = prevCids[count-1];
+              await this.newSeparatorBefore({minCid, maxCid, count}, item)
+              card = await this.newCardBefore({card:{cid}}, item);
+              item.minCid = nextCids[1];
+              item.count = nextCids.length - 1;
+            }
+            card.focus();
+            return;
+          }
+        }
+      }
+    };
+
     this.newCardBefore = async (args, item) => {
         return newItem('card', 'before', args, item);
     };
@@ -315,8 +355,10 @@ def Edit(items):
 
     this.removeItem = (item) => {
       const index = editItems.indexOf(item);
-      editItems.splice(index, 1);
-      item.fryelement.remove();
+      if (index >= 0) {
+        editItems.splice(index, 1);
+        item.fryelement.remove();
+      }
     };
     
     this.closest = (y) => {
