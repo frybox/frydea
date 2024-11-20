@@ -59,7 +59,7 @@ def Edit(items):
         container.insertBefore(newcard.fryelement, opArea);
         editItems.push(newcard);
         newcard.toVimEditor();
-        newcard.fryelement.scrollIntoView();
+        newcard.fryelement.scrollIntoView({block: 'nearest', inline: 'nearest'});
         return newcard;
     };
 
@@ -425,7 +425,7 @@ def CardSeparator(min_cid, max_cid, count):
       } else {
         countSignal.value = newCount;
         minCid = nextCid;
-        this.fryelement.scrollIntoView();
+        this.fryelement.scrollIntoView({block: 'nearest', inline: 'nearest'});
       }
     };
 
