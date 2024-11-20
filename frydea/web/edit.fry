@@ -13,6 +13,7 @@ def Edit(items):
   <template>
     <div ref=(container)
          bg-primary-elx box-border h-full overflow-auto
+         @focusin=(handleFocusIn)
          @keydown=(handleCardKey)>
       <EditorCard frytemplate ref=(cardTemplate) card={empty_card} />
       <CardSeparator frytemplate ref=(separatorTemplate) {**separator_args} />
@@ -47,6 +48,12 @@ def Edit(items):
         }
     });
     
+    const handleFocusIn = async (e) => {
+      const comp = domComponent(e.target);
+      if (comp.fryname === 'EditorCard') {
+        this.g.indexArea.updateSelection(comp.model.cid);
+      }
+    }
     const newDraftCard = async () => {
         const newcard = await cardTemplate.create();
         container.insertBefore(newcard.fryelement, opArea);

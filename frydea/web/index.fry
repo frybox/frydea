@@ -15,7 +15,7 @@ def YearGroup(begin_year, card_counts, current_year):
   styles = [[allbg[int(count/10) if count < 50 else 4]] for count in card_counts]
   current_index = current_year - begin_year
   if current_index >= 0 and current_index < len(card_counts):
-    styles[current_index] += ['outline', 'outline-2', 'outline-primaryax']
+    styles[current_index] = ['bg-secondary-elx', 'outline', 'outline-2', 'outline-primaryax']
   <template>
     <div flex gap-1>
       {<span refall=(elYears) {*styles[i]} cursor-pointer 
@@ -63,13 +63,23 @@ def YearGroup(begin_year, card_counts, current_year):
         }
         return false;
     }
+    this.updateSelection = (selectedYear) => {
+        for (let i=0; i<years.length; i++) {
+            if (years[i] === selectedYear) {
+                elYears[i].classList.add('bg-secondary-elx');
+            } else {
+                elYears[i].classList.remove('bg-secondary-elx');
+            }
+        }
+    }
     this.isYear = true;
     this.isDay = false;
   </script>
 
 def DayIndex(day='', count=0):
   <template>
-    <li cursor-pointer
+    <li ref=(element)
+        cursor-pointer
         tabindex="-1"
         focus="outline outline-4 outline-primaryax">
       <span mr-5px text-sm>[{day}](daySignal)</span>
@@ -87,6 +97,13 @@ def DayIndex(day='', count=0):
     }
     this.updateCount = (count) => {
       countSignal.value = count;
+    }
+    this.updateSelection = (selectedDay) => {
+        if (day === selectedDay) {
+          element.classList.add('bg-secondary-elx');
+        } else {
+          element.classList.remove('bg-secondary-elx');
+        }
     }
     this.day = () => daySignal.peek();
     this.count = () => countSignal.peek();
@@ -169,43 +186,57 @@ def Index(cidtimes):
       dayIndexes.push(day);
     }
 
+    const selectYear = async (year) => {
+      if (year === selectedYear) return;
+      selectedYear = year;
+      for (const yearGroup of yearGroups) {
+        yearGroup.updateSelection(selectedYear);
+      }
+      const dayMap = cardManager.yearMap.get(year);
+      const days = dayMap ? Array.from(dayMap.keys()) : [];
+      days.sort();
+      const extra = dayIndexes.length - days.length;
+      for (let i=0; i<extra; i++) {
+        removeDay(dayIndexes[0]);
+      }
+      for (let i=0; i<dayIndexes.length; i++) {
+        const day = days[i];
+        const count = dayMap.get(day).length;
+        dayIndexes.update(day, count);
+      }
+      for (let i=dayIndexes.length; i<days.length; i++) {
+        const day = days[i];
+        const count = dayMap.get(day).length;
+        await appendDay({day, count});
+      }
+    }
+
+    const selectDay = async (day) => {
+      const dayMap = cardManager.yearMap.get(selectedYear);
+      if (dayMap) {
+        let cids = dayMap.get(day);
+        cids = cids ? cids : [];
+        cids.sort((a,b)=>b-a);
+        for (const cid of cids) {
+          await this.g.editArea.openCard(cid);
+        }
+        for (const dayIndex of dayIndexes) {
+          dayIndex.updateSelection(day);
+        }
+      }
+
+    }
+
     const handleIndexKey = (e) => {
       console.log(e);
       let currentItem = domComponent(e.target);
       const selectItem = async () => {
         if (currentItem.isYear) {
           const year = currentItem.yearOf(e.target);
-          if (year === selectedYear) return;
-          selectedYear = year;
-          const dayMap = cardManager.yearMap.get(year);
-          const days = dayMap ? Array.from(dayMap.keys()) : [];
-          days.sort();
-          if (dayIndexes.length > days.length) {
-            for (let i=0; i<dayIndexes.length-days.length; i++) {
-              removeDay(dayIndexes[0]);
-            }
-          }
-          for (let i=0; i<dayIndexes.length; i++) {
-            const day = days[i];
-            const count = dayMap.get(day).length;
-            dayIndexes.update(day, count);
-          }
-          for (let i=dayIndexes.length; i<days.length; i++) {
-            const day = days[i];
-            const count = dayMap.get(day).length;
-            await appendDay({day, count});
-          }
+          await selectYear(year);
         } else {
-          const dayMap = cardManager.yearMap.get(selectedYear);
-          if (dayMap) {
-            const day = currentItem.day();
-            let cids = dayMap.get(day);
-            cids = cids ? cids : [];
-            cids.sort((a,b)=>b-a);
-            for (const cid of cids) {
-              await this.g.editArea.openCard(cid);
-            }
-          }
+          const day = currentItem.day();
+          await selectDay(day);
         }
       }
       const moveDown = () => {
@@ -327,5 +358,14 @@ def Index(cidtimes):
         }
       }
       return item;
+    }
+
+    this.updateSelection = async (cid) => {
+      const {year, day} = cardManager.getIndex(cid);
+      if (!year) return;
+      await selectYear(year);
+      for (const dayIndex of dayIndexes) {
+        dayIndex.updateSelection(day);
+      }
     }
   </script>

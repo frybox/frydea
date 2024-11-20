@@ -21,6 +21,7 @@ CodeMirror.commands.save = async (cm) => {
 
 
 const getTime = (updateTime) => dayjs(new Date(updateTime)).format('YYYY-MM-DD HH:mm');
+const getDay = (time) => dayjs(time).format('YYYY-MM-DD');
 
 class CardModel {
   constructor(card, manager) {
@@ -196,7 +197,7 @@ class CardManager {
         } else {
             dayMap = this.yearMap.get(year);
         }
-        const day = dayjs(time).format('YYYY-MM-DD');
+        const day = getDay(time);
         let cidList;
         if (!dayMap.has(day)) {
             cidList = [];
@@ -206,6 +207,16 @@ class CardManager {
         }
         cidList.push(cid);
     }
+  }
+
+  getIndex(cid) {
+    const time = this.cid2timeMap.get(cid);
+    if (time) {
+      const year = time.getFullYear();
+      const day = getDay(time);
+      return {year, day};
+    }
+    return {};
   }
 
   // 如下三种情况调用该接口：
