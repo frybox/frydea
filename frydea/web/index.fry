@@ -202,7 +202,7 @@ def Index(cidtimes):
       for (let i=0; i<dayIndexes.length; i++) {
         const day = days[i];
         const count = dayMap.get(day).length;
-        dayIndexes.update(day, count);
+        dayIndexes[i].update(day, count);
       }
       for (let i=dayIndexes.length; i<days.length; i++) {
         const day = days[i];
