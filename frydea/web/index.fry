@@ -99,14 +99,14 @@ def DayIndex(day='', count=0):
       countSignal.value = count;
     }
     this.updateSelection = (selectedDay) => {
-        if (day === selectedDay) {
+        if (this.day === selectedDay) {
           element.classList.add('bg-secondary-elx');
         } else {
           element.classList.remove('bg-secondary-elx');
         }
     }
-    this.day = () => daySignal.peek();
-    this.count = () => countSignal.peek();
+    Object.defineProperty(this, 'day', {get() {return daySignal.peek();}});
+    Object.defineProperty(this, 'count', {get() {return countSignal.peek();}});
     this.isYear = false;
     this.isDay = true;
   </script>
@@ -235,7 +235,7 @@ def Index(cidtimes):
           const year = currentItem.yearOf(e.target);
           await selectYear(year);
         } else {
-          const day = currentItem.day();
+          const day = currentItem.day;
           await selectDay(day);
         }
       }
@@ -364,8 +364,15 @@ def Index(cidtimes):
       const {year, day} = cardManager.getIndex(cid);
       if (!year) return;
       await selectYear(year);
+      let currentDay;
       for (const dayIndex of dayIndexes) {
         dayIndex.updateSelection(day);
+        if (dayIndex.day === day) {
+            currentDay = dayIndex;
+        }
+      }
+      if (currentDay) {
+        currentDay.fryelement.scrollIntoView();
       }
     }
   </script>
