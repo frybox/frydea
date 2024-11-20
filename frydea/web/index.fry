@@ -11,8 +11,7 @@ def YearGroup(begin_year, card_counts, current_year):
       name = str(year)
       years.append(year)
       names.append(name[2:])
-  allbg = ['bg-blue-1', 'bg-blue-3', 'bg-blue-5', 'bg-blue-7', 'bg-blue-9',]
-  styles = [[allbg[int(count/10) if count < 50 else 4]] for count in card_counts]
+  styles = [['bg-blue-1'] for count in card_counts]
   current_index = current_year - begin_year
   if current_index >= 0 and current_index < len(card_counts):
     styles[current_index] = ['bg-secondary-elx', 'outline', 'outline-2', 'outline-primaryax']
@@ -67,8 +66,10 @@ def YearGroup(begin_year, card_counts, current_year):
         for (let i=0; i<years.length; i++) {
             if (years[i] === selectedYear) {
                 elYears[i].classList.add('bg-secondary-elx');
+                elYears[i].classList.remove('bg-blue-1');
             } else {
                 elYears[i].classList.remove('bg-secondary-elx');
+                elYears[i].classList.add('bg-blue-1');
             }
         }
     }
@@ -144,7 +145,8 @@ def Index(cidtimes):
     <div ref=(container)
          box-border bg-secondary-bgx
          p-4px h-full overflow-auto
-         @keydown=(handleIndexKey)>
+         @keydown=(handleIndexKey)
+         @click=(handleClick)>
       <div>
         {<YearGroup refall=(yearGroups) {begin_year} {card_counts} {current_year} />
          for begin_year, card_counts in year_counts}
@@ -224,21 +226,27 @@ def Index(cidtimes):
           dayIndex.updateSelection(day);
         }
       }
+    }
 
+    const selectElement = async (element) => {
+      let item = domComponent(element);
+      if (item.isYear) {
+        const year = item.yearOf(element);
+        await selectYear(year);
+      } else {
+        const day = item.day;
+        await selectDay(day);
+      }
+    }
+
+    const handleClick = async (e) => {
+        await selectElement(e.target);
     }
 
     const handleIndexKey = (e) => {
       console.log(e);
       let currentItem = domComponent(e.target);
-      const selectItem = async () => {
-        if (currentItem.isYear) {
-          const year = currentItem.yearOf(e.target);
-          await selectYear(year);
-        } else {
-          const day = currentItem.day;
-          await selectDay(day);
-        }
-      }
+      const selectItem = async () => await selectElement(e.target);
       const moveDown = () => {
         if (currentItem.isYear) {
             const yearIndex = currentItem.indexOf(e.target);
@@ -319,6 +327,7 @@ def Index(cidtimes):
       }
       const indexKeyMap = {
         Enter: selectItem,
+        Space: selectItem,
         KeyJ: moveDown,
         ArrowDown: moveDown,
         KeyK: moveUp,
@@ -372,7 +381,7 @@ def Index(cidtimes):
         }
       }
       if (currentDay) {
-        currentDay.fryelement.scrollIntoView();
+        currentDay.fryelement.scrollIntoView({block: 'nearest', inline: 'nearest'});
       }
     }
   </script>

@@ -261,6 +261,7 @@ def Edit(items):
         ArrowRight: moveRight,
         KeyG: () => {moveEnd(e.shiftKey)},
         KeyA: newDraftCard,
+        KeyO: newDraftCard,
         KeyC: closeCard,
         KeyD: () => {deleteCard(e.shiftKey)},
         KeyB: broadenCard,
