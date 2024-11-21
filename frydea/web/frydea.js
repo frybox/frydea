@@ -294,7 +294,7 @@ class CardManager {
     const cid2time = new Map();
     const cid2version = new Map();
     changes.forEach(([cid, time, version]) => {
-      cid2time.set(cid, time);
+      cid2time.set(cid, new Date(time));
       cid2version.set(cid, version);
     });
     let changed = [];
