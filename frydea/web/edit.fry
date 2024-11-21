@@ -13,6 +13,7 @@ def Edit(items):
   <template>
     <div ref=(container)
          bg-primary-elx box-border h-full overflow-auto
+         @dblclick=(handleDoubleClick)
          @focusin=(handleFocusIn)
          @keydown=(handleCardKey)>
       <EditorCard frytemplate ref=(cardTemplate) card={empty_card} />
@@ -47,6 +48,13 @@ def Edit(items):
             }
         }
     });
+
+    const handleDoubleClick = async (e) => {
+      const comp = domComponent(e.target);
+      if (comp.fryname === 'EditorCard') {
+        comp.toVimInsertMode();
+      }
+    }
     
     const handleFocusIn = async (e) => {
       const comp = domComponent(e.target);
@@ -58,7 +66,7 @@ def Edit(items):
         const newcard = await cardTemplate.create();
         container.insertBefore(newcard.fryelement, opArea);
         editItems.push(newcard);
-        newcard.toVimEditor();
+        newcard.toVimInsertMode();
         newcard.fryelement.scrollIntoView({block: 'nearest', inline: 'nearest'});
         return newcard;
     };
@@ -493,7 +501,7 @@ def EditorCard(card):
     import { EditorState, Compartment } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
-    import { vim, CodeMirror} from "@replit/codemirror-vim";
+    import { vim, CodeMirror, Vim} from "@replit/codemirror-vim";
     import { cardManager } from "./frydea.js";
     import { oneDark } from "@codemirror/theme-one-dark";
 
@@ -591,6 +599,16 @@ def EditorCard(card):
     //CodeMirror.on(editor.cm, 'inputEvent', (e) => {console.log('inputEvent:'); console.log(e);});
 
     this.toVimEditor = () => {
+      editor.focus();
+    }
+
+    this.toVimInsertMode = () => {
+      if (editor && editor.cm && editor.cm.state && editor.cm.state.vim) {
+        const vim = editor.cm.state.vim;
+        if (!vim.insertMode && !vim.visualMode) {
+          Vim.handleKey(editor.cm, 'i', 'user');
+        }
+      }
       editor.focus();
     }
 
