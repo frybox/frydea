@@ -588,7 +588,7 @@ def EditorCard(card):
       }
     })
 
-    CodeMirror.on(editor.cm, 'inputEvent', (e) => {console.log('inputEvent:'); console.log(e);});
+    //CodeMirror.on(editor.cm, 'inputEvent', (e) => {console.log('inputEvent:'); console.log(e);});
 
     this.toVimEditor = () => {
       editor.focus();
