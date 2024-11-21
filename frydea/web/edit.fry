@@ -490,7 +490,7 @@ def EditorCard(card):
     </div>
   </template>
   <script card={card.todict()} cardId={0}>
-    import { EditorState } from "@codemirror/state";
+    import { EditorState, Compartment } from "@codemirror/state";
     import { EditorView, basicSetup } from "codemirror";
     import { markdown } from "@codemirror/lang-markdown";
     import { vim, CodeMirror} from "@replit/codemirror-vim";
@@ -506,6 +506,8 @@ def EditorCard(card):
       // 调用createCard的三种情况都有可能
       cardModel = await cardManager.createCard(card);
     }
+
+    const editableCompartment = new Compartment();
 
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
@@ -540,6 +542,7 @@ def EditorCard(card):
           }
         }, {dark: true})
 
+
       const state = EditorState.create({
         doc: cardModel.content.peek(),
         extensions: [
@@ -548,6 +551,7 @@ def EditorCard(card):
           markdown(),
           EditorView.lineWrapping,
           updator,
+          editableCompartment.of(EditorView.editable.of(false)),
           frytheme,
           oneDark,
         ]
@@ -569,16 +573,22 @@ def EditorCard(card):
     }
 
     createEditor();
+    // 让editor.contentDOM在contenteditable="false"的情况下也可接受焦点
+    editor.contentDOM.tabIndex='-1';
 
-    /*
     CodeMirror.on(editor.cm, 'vim-mode-change', (e) => {
       if (e.mode === 'insert' || e.mode === 'replace') {
-        editor.contentDOM.contentEditable = true;
+        editor.dispatch({effects: editableCompartment.reconfigure(EditorView.editable.of(true))});
       } else {
-        editor.contentDOM.remoteAttribute('contenteditable');
+        // command mode和visual mode下，editor.contentDOM.contenteditable="false"
+        // 这种情况下，浏览器不会展示IME，只会给editor.contentDOM发送正常的键盘keydown按键信息。
+        // 由于不会发送compositionstart/compositionupdate/compositionend消息，也不会触发
+        // @replit/codemirror-vim删除dom元素再加回来取消IME造成的定位bug。
+        editor.dispatch({effects: editableCompartment.reconfigure(EditorView.editable.of(false))});
       }
     })
-    */
+
+    CodeMirror.on(editor.cm, 'inputEvent', (e) => {console.log('inputEvent:'); console.log(e);});
 
     this.toVimEditor = () => {
       editor.focus();
