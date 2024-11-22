@@ -474,6 +474,7 @@ def EditorCard(card):
   <template>
     <div mx-4px w-sub,100%,8px min-h-200px mt-10px mb-10px
          border border-gray-bdx rounded-md
+         shadow hover:shadow-md
          focus="outline outline-4 outline-primaryax"
          has-focus="outline outline-2 outline-primaryax"
          flex flex-col

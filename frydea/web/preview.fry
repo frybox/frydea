@@ -139,6 +139,7 @@ def PreviewCard(card):
   <template>
     <div mx-4px w-sub,100%,8px mb-20px
          border border-gray-bdx rounded-md
+         shadow hover:shadow-md
          focus="outline outline-4 outline-primaryax"
          flex flex-col
          tabindex="-1"
