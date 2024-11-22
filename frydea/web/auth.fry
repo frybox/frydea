@@ -1,0 +1,26 @@
+from fryhcs import Element
+
+def Login(username=''):
+  <template>
+    <div h-screen w-screen
+         flex justify-center items-center>
+      <form method="POST"
+            border rounded-sm border-primary-bdx bg-primary-bgx
+            py-20px px-200px
+            has-focus="outline outline-1 outline-primary"
+            flex flex-col justify-center>
+        <h3 text-3xl text-bold text-primary-t text-center>
+          飞思卡片笔记
+        </h3>
+        <input type="text" name="username" placeholder="用户名"
+               m-20px p-5px border rounded border-gray-bdx
+               focus="outline outline-2 outline-primary">
+        <input type="password" name="password" placeholder="密码"
+               m-20px p-5px border rounded border-gray-bdx
+               focus="outline outline-2 outline-primary">
+        <input type="submit" name="submit" value="登 录"
+               rounded bg-primary text-primary-contrast
+               py-5px>
+      </form>
+    </div>
+  </template>

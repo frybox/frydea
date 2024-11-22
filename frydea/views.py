@@ -1,11 +1,21 @@
 from datetime import datetime
-from flask import abort, request
-from fryhcs import html, render
+from flask import abort, request, url_for, redirect, flash
+from flask_login import login_user, login_required, current_user
+from fryhcs import html
 from frydea import app
-from frydea.web import App
+from frydea import login_manager
+from frydea.web import App, Login
 from frydea.database import db
 from frydea.models import Card, User, ChangeLog
 from sqlalchemy import desc
+
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    query = db.select(User).where(User.id == int(user_id))
+    user = db.session.scalars(query).first()
+    return user
 
 def get_user():
     user = db.session.get(User, 1)
@@ -29,9 +39,32 @@ def max_clid():
     query = db.select(ChangeLog.id).order_by(desc(ChangeLog.id)).limit(1)
     return db.session.scalars(query).first()
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    args = {}
+    next_url = request.args.get('next')
+    print(next_url)
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password = request.form['password'].strip()
+        if not username or not password:
+            flash("用户名/密码不能为空")
+            return redirect(url_for('login'))
+        query = db.select(User).where(User.username == username)
+        user = db.session.scalars(query).first()
+        if user and user.validate_password(password):
+            login_user(user)
+            flash("登录成功")
+            return redirect(next_url or url_for('index'))
+        flash("用户名/密码错误")
+        args = dict(username=username)
+    return html(Login, args=args, title="Frydea login", autoreload=False)
+
+
 @app.get('/')
+@login_required
 def index():
-    user = get_user()
+    user = current_user 
     query = db.select(Card).where(Card.user_id == user.id)
     query = query.order_by(desc(Card.id)).limit(5)
     cards = reversed(db.session.scalars(query).all())
@@ -43,8 +76,9 @@ def index():
     return html(App, args=args, title='Frydea', autoreload=False)
 
 @app.post('/cards')
+@login_required
 def create_card():
-    user = get_user()
+    user = current_user 
     data = request.get_json()
     content = data['content']
     last_clid = data['last_clid']
@@ -72,8 +106,9 @@ def create_card():
     }
 
 @app.put('/cards/<int:cid>')
+@login_required
 def update_card(cid):
-    user = get_user()
+    user = current_user 
     query = db.select(Card).where(Card.user_id == user.id, Card.id == cid)
     card = db.session.scalars(query).first()
     if not card:
@@ -116,8 +151,9 @@ def update_card(cid):
     }
 
 @app.get('/cards/<int:cid>')
+@login_required
 def get_card(cid):
-    user = get_user()
+    user = current_user 
     query = db.select(Card).where(Card.user_id == user.id, Card.id == cid)
     card = db.session.scalars(query).first()
     if not card:
@@ -140,8 +176,9 @@ def get_card(cid):
         }
 
 @app.get('/cards')
+@login_required
 def get_card_list():
-    user = get_user()
+    user = current_user 
     first_cid = request.args.get('first_cid')
     last_cid = request.args.get('last_cid')
     last_clid = request.args.get('last_clid')
@@ -168,8 +205,9 @@ def get_card_list():
         }
 
 @app.delete('/cards/<int:cid>')
+@login_required
 def delete_card(cid):
-    user = get_user()
+    user = current_user 
     last_clid = request.args.get('last_clid')
     query = db.select(Card).where(Card.user_id == user.id, Card.id == cid)
     card = db.session.scalars(query).first()

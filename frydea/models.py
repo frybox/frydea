@@ -2,23 +2,34 @@ from typing import Optional, List
 from datetime import datetime
 from sqlalchemy import String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 from frydea.database import db
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     __tablename__ = 'users'
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(50), unique=True)
-    email: Mapped[str] = mapped_column(String(120), unique=True)
+    nickname: Mapped[str] = mapped_column(String(256))
+    username: Mapped[str] = mapped_column(String(256), unique=True)
+    password: Mapped[str] = mapped_column(String(256))
+    create_time: Mapped[datetime] = mapped_column(comment="用户创建时间")
 
     cards: Mapped[List['Card']] = relationship(back_populates='user')
 
-    def __init__(self, name=None, email=None):
-        self.name = name
-        self.email = email
+    def __init__(self, username=None, nickname=None):
+        self.username = username
+        self.nickname = nickname if nickname else username
+        self.create_time = datetime.now()
 
     def __repr__(self):
-        return f'<User {self.name!r}>'
+        return f'<User {self.username!r}>'
+
+    def set_password(self, password):
+        self.password = generate_password_hash(password)
+
+    def validate_password(self, password):
+        return check_password_hash(self.password, password)
 
 
 class Card(db.Model):
