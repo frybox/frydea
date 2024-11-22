@@ -585,14 +585,20 @@ def EditorCard(card):
     editor.contentDOM.tabIndex='-1';
 
     CodeMirror.on(editor.cm, 'vim-mode-change', (e) => {
+      // 当前代码在editor.update中执行，所以不能同步执行新的update(dispatch)，
+      // 需要放到异步代码(queueMicrotask)中执行
       if (e.mode === 'insert' || e.mode === 'replace') {
-        editor.dispatch({effects: editableCompartment.reconfigure(EditorView.editable.of(true))});
+        queueMicrotask(() => {
+          editor.dispatch({effects: editableCompartment.reconfigure(EditorView.editable.of(true))});
+        });
       } else {
         // command mode和visual mode下，editor.contentDOM.contenteditable="false"
         // 这种情况下，浏览器不会展示IME，只会给editor.contentDOM发送正常的键盘keydown按键信息。
         // 由于不会发送compositionstart/compositionupdate/compositionend消息，也不会触发
         // @replit/codemirror-vim删除dom元素再加回来取消IME造成的定位bug。
-        editor.dispatch({effects: editableCompartment.reconfigure(EditorView.editable.of(false))});
+        queueMicrotask(() => {
+          editor.dispatch({effects: editableCompartment.reconfigure(EditorView.editable.of(false))});
+        });
       }
     })
 
@@ -605,7 +611,10 @@ def EditorCard(card):
     this.toVimInsertMode = () => {
       if (editor && editor.cm && editor.cm.state && editor.cm.state.vim) {
         const vim = editor.cm.state.vim;
-        if (!vim.insertMode && !vim.visualMode) {
+        if (!vim.insertMode) {
+          if (vim.visualMode) {
+            Vim.handleKey(editor.cm, '<Esc>', 'user');
+          }
           Vim.handleKey(editor.cm, 'i', 'user');
         }
       }
