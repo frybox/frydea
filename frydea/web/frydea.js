@@ -175,6 +175,9 @@ class CardManager {
     // 服务端卡片ID(cid)到卡片的映射（服务器上存在的卡片）
     this.cid2cardMap = new Map();
     this._nextCardId = 1;
+    this.indexArea = null;
+    this.editArea = null;
+    this.previewArea = null;
   }
 
   get nextCardId() {
@@ -303,7 +306,23 @@ class CardManager {
       const version = cid2version.get(cid);
       const card = this.cid2cardMap.get(cid);
       if (version < 0) {
-        this.cid2timeMap.delete(cid);
+        if (this.cid2timeMap.has(cid)) {
+          const time = this.cid2timeMap.get(cid);
+          const year = time.getFullYear();
+          const day = getDay(time);
+          this.cid2timeMap.delete(cid);
+          const dayMap = this.yearMap.get(year);
+          if (dayMap && dayMap.has(day)) {
+            const cidList = dayMap.get(day);
+            const i = cidList.indexOf(cid);
+            if (i >= 0) {
+              cidList.splice(i, 1);
+              if (this.indexArea) {
+                this.indexArea.updateDay(day, cidList.length);
+              }
+            }
+          }
+        }
         if (card && card.isDirty) {
           card.conflict = true;
           conflict.push(card);
@@ -311,7 +330,30 @@ class CardManager {
           // TODO delete card
         }
       } else {
-        this.cid2timeMap.set(cid, cid2time.get(cid));
+        if (!this.cid2timeMap.has(cid)) {
+          const time = cid2time.get(cid);
+          this.cid2timeMap.set(cid, time);
+          const year = time.getFullYear();
+          const day = getDay(time);
+          let dayMap;
+          if (!this.yearMap.has(year)) {
+            dayMap = new Map();
+            this.yearMap.set(year, dayMap);
+          } else {
+            dayMap = this.yearMap.get(year);
+          }
+          let cidList;
+          if (!dayMap.has(day)) {
+            cidList = [];
+            dayMap.set(day, cidList);
+          } else {
+            cidList = dayMap.get(day);
+          }
+          cidList.push(cid);
+          if (this.indexArea) {
+            this.indexArea.updateDay(day, cidList.length);
+          }
+        }
         if (card && card.version < version) {
           changed.push(card);
         }

@@ -384,4 +384,13 @@ def Index(cidtimes):
         currentDay.fryelement.scrollIntoView({block: 'nearest', inline: 'nearest'});
       }
     }
+    this.updateDay = (day, count) => {
+      for (const dayIndex of dayIndexes) {
+        if (dayIndex.day === day) {
+          dayIndex.updateCount(count);
+          return;
+        }
+      }
+      appendDay({day, count});
+    }
   </script>
