@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import abort, request, url_for, redirect, flash
-from flask_login import login_user, login_required, current_user
+from flask_login import login_user, login_required, logout_user, current_user
 from fryhcs import html
 from frydea import app
 from frydea import login_manager
@@ -61,6 +61,13 @@ def login():
     return html(Login, args=args, title="Frydea login", autoreload=False)
 
 
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
+
 @app.get('/')
 @login_required
 def index():
@@ -72,7 +79,7 @@ def index():
     query = query.order_by(Card.id)
     cidtimes = db.session.execute(query).all()
     clid = max_clid()
-    args = dict(cards=cards, cidtimes=cidtimes, clid=clid)
+    args = dict(user=user, cards=cards, cidtimes=cidtimes, clid=clid)
     return html(App, args=args, title='Frydea', autoreload=False)
 
 @app.post('/cards')

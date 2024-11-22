@@ -6,7 +6,7 @@ from frydea.web.preview import Preview
 from frydea.web.edit import Edit
 from frydea.web.index import Index
 
-def App(cards=None, cidtimes=None, clid=0):
+def App(user, cards=None, cidtimes=None, clid=0):
   cards = [] if not cards else cards
   cidtimes = [] if not cidtimes else cidtimes
   clid = clid if clid else 0
@@ -25,7 +25,7 @@ def App(cards=None, cidtimes=None, clid=0):
 
   <template>
     <div h-screen w-screen overflow-x-auto>
-      <Header />
+      <Header {user}/>
       <Body {cidtimes} {items} />
     </div>
   </template>
@@ -35,9 +35,24 @@ def App(cards=None, cidtimes=None, clid=0):
   </script>
 
 
-def Header():
+def Header(user):
   <template>
-    <div fixed top-0 w-full h-30px z-100 bg-primary>
+    <div fixed top-0 w-full h-30px z-100 bg-primary
+         px-10px
+         flex justify-between>
+      <div text-primary-contrast text-bold>
+        <p>
+          飞思卡片笔记
+        </p>
+      </div>
+      <div flex gap-3 m-5px text-sm>
+        <p>
+          {user.nickname}
+        </p>
+        <a href='/logout'>
+          退出
+        </a>
+      </div>
     </div>
   </template>
   <script>
