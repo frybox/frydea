@@ -4,7 +4,7 @@ from flask_login import login_user, login_required, logout_user, current_user
 from fryhcs import html
 from frydea import app
 from frydea import login_manager
-from frydea.web import App, Login
+from frydea.web import App, Login, Signup
 from frydea.database import db
 from frydea.models import Card, User, ChangeLog
 from sqlalchemy import desc
@@ -15,14 +15,6 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     query = db.select(User).where(User.id == int(user_id))
     user = db.session.scalars(query).first()
-    return user
-
-def get_user():
-    user = db.session.get(User, 1)
-    if not user:
-        user = User(name="admin", email="admin@frydea.org")
-        db.session.add(user)
-        db.session.commit()
     return user
 
 def new_changes(user_id, last_clid):
@@ -39,11 +31,35 @@ def max_clid():
     query = db.select(ChangeLog.id).order_by(desc(ChangeLog.id)).limit(1)
     return db.session.scalars(query).first()
 
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        nickname = request.form['nickname'].strip()
+        password = request.form['password'].strip()
+        pwconfirm = request.form['password_confirm'].strip()
+        if not username or not password:
+            flash("用户名/密码不能为空")
+            return redirect(url_for('signup'))
+        if password != pwconfirm:
+            flash("密码不一致")
+            return redirect(url_for('signup'))
+        query = db.select(User).where(User.username == username)
+        if db.session.scalars(query).first():
+            flash("用户名已存在")
+            return redirect(url_for('signup'))
+        user = User(username, nickname)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        return redirect(url_for('index'))
+    return html(Signup, title="Frydea login", autoreload=False)
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     args = {}
     next_url = request.args.get('next')
-    print(next_url)
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password'].strip()

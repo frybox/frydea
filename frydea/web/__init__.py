@@ -1,2 +1,2 @@
 from .app import App
-from .auth import Login
+from .auth import Login, Signup

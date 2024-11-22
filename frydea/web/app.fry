@@ -1,4 +1,5 @@
 from datetime import datetime
+from flask import url_for
 from fryhcs import Element
 from fryui import HCenter
 from frydea.models import Card as CardModel
@@ -49,7 +50,7 @@ def Header(user):
         <p>
           {user.nickname}
         </p>
-        <a href='/logout'>
+        <a href={url_for('logout')}>
           退出
         </a>
       </div>
