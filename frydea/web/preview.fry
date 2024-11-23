@@ -152,7 +152,7 @@ def PreviewCard(card):
            bg-gray-el border-b border-gray-bdx rounded-t-md>
         <div flex>
           <Icon type="file-text" />
-          <p>[{cid}](cardModel.displayName)</p>
+          <p>![{cid}](cardModel.displayName)</p>
         </div>
         <p>[{time}](cardModel.displayTime)</p>
       </div>

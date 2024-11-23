@@ -605,7 +605,25 @@ def EditorCard(card):
           editor.dispatch({effects: editableCompartment.reconfigure(EditorView.editable.of(false))});
         });
       }
-    })
+    });
+
+    CodeMirror.on(editor.cm, 'vim-keypress', (e) => {
+      const vim = editor.cm.state.vim;
+      if (!vim || vim.insertMode || vim.visualMode) {
+        return;
+      }
+      if (e === '<Up>' || e === 'k') {
+        if (editor.state.selection.main.head === 0) {
+
+        }
+      } else if (e === '<Down>' || e === 'j') {
+        let maxPos = editor.state.doc.length - 1;
+        maxPos = maxPos >= 0 ? maxPos : 0;
+        if (editor.state.selection.main.head === maxPos) {
+
+        }
+      }
+    });
 
     //CodeMirror.on(editor.cm, 'inputEvent', (e) => {console.log('inputEvent:'); console.log(e);});
 
