@@ -115,6 +115,8 @@ def Preview():
         this.fryparent.broaden();
       }
       const cardKeyMap = {
+        Enter: moveDown,
+        Space: moveDown,
         KeyJ: moveDown,
         ArrowDown: moveDown,
         KeyK: moveUp,
@@ -144,19 +146,20 @@ def PreviewCard(card):
          flex flex-col
          tabindex="-1"
          ref=(elContainer)>
-      <div flex-none h-30px w-full
+      <div flex-none h-20px w-full px-5px py-2px
            flex justify-between 
-           text-sm
-           bg-gray-el border border-gray-bdx>
+           text-12px text-grayx
+           bg-gray-el border-b border-gray-bdx rounded-t-md>
         <div flex>
-          <Icon type="file-text"/>
+          <Icon type="file-text" />
           <p>[{cid}](cardModel.displayName)</p>
         </div>
         <p>[{time}](cardModel.displayTime)</p>
       </div>
       <div ref=(elContent)
            flex-auto w-full
-           bg-secondary-bg overflow-hidden font-mono>
+           p-5px
+           bg-secondary-bg overflow-hidden text-14px>
       </div>
     </div>
   </template>

@@ -246,7 +246,10 @@ def Index(cidtimes):
     const handleIndexKey = (e) => {
       console.log(e);
       let currentItem = domComponent(e.target);
-      const selectItem = async () => await selectElement(e.target);
+      const selectItem = async () => {
+        e.preventDefault();
+        await selectElement(e.target);
+      }
       const moveDown = () => {
         if (currentItem.isYear) {
             const yearIndex = currentItem.indexOf(e.target);

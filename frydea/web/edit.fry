@@ -258,6 +258,7 @@ def Edit(items):
       }
       const cardKeyMap = {
         Enter: toVimEditor,
+        Space: toVimEditor,
         KeyI: toVimEditor,
         KeyJ: moveDown,
         ArrowDown: moveDown,
@@ -482,9 +483,11 @@ def EditorCard(card):
          ref=(elContainer)>
       <div flex-none h-30px w-full
            flex justify-between 
-           bg-gray-el border border-gray-bdx>
-        <div flex>
-          <Icon type="file-text"/>
+           px-5px
+           bg-gray-el border-b border-gray-bdx
+           rounded-t-md>
+        <div flex justify-center>
+          <Icon type="file-text" scale={1.5}/>
           <p>![{card.id}](cardModel.displayName)</p>
         </div>
         <p>[{time}](cardModel.displayTime)</p>
@@ -494,7 +497,8 @@ def EditorCard(card):
            bg-secondary-bg overflow-hidden>
       </div>
       <div flex-none w-full h-30px
-           bg-gray-el border border-gray-bdx>
+           bg-gray-el border-t border-gray-bdx
+           rounded-b-md>
       </div>
     </div>
   </template>
