@@ -7,7 +7,7 @@ def Preview():
   <template>
     <div ref=(container)
          box-border h-full bg-secondary-bgx
-         h-full overflow-auto
+         h-full overflow-auto p-4px
          @keydown=(handleCardKey)>
       <PreviewCard frytemplate ref=(template) {card} />
     </div>
@@ -181,6 +181,10 @@ def PreviewCard(card):
     }
     this.close = () => {
       elContainer.remove();
+      if (this.dispose) {
+        this.dispose();
+        this.dispose = null;
+      }
     }
     this.model = cardModel;
   </script>
