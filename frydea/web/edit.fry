@@ -653,7 +653,8 @@ def EditorCard(card):
       } else if (e === '<Down>' || e === 'j') {
         let maxPos = editor.state.doc.length - 1;
         maxPos = maxPos >= 0 ? maxPos : 0;
-        if (pos === maxPos) {
+        // pos有可能与doc.length相同，比如doc最后一行是空行，或doc内容为空时。
+        if (pos >= maxPos) { 
           const next = this.fryparent.nextItem(this);
           if (next) {
             next.focus({mode: 'normal', position: 'begin'});

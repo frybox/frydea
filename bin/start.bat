@@ -1,0 +1,1 @@
+fry -A frydea dev
