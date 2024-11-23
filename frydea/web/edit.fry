@@ -40,10 +40,6 @@ def Edit(items):
         if ((e.code === 'Escape' || e.code === 'Enter') && (!active || !active.frycomponents)) {
             const len = editItems.length;
             if (len > 0) {
-                const item = editItems[len-1];
-                if (item.fryname === 'CardSeparator') {
-
-                }
                 editItems[len-1].focus();
             }
         }
@@ -52,7 +48,7 @@ def Edit(items):
     const handleDoubleClick = async (e) => {
       const comp = domComponent(e.target);
       if (comp.fryname === 'EditorCard') {
-        comp.toVimInsertMode();
+        comp.focus({mode: 'insert'});
       }
     }
     
@@ -66,7 +62,7 @@ def Edit(items):
         const newcard = await cardTemplate.create();
         container.insertBefore(newcard.fryelement, opArea);
         editItems.push(newcard);
-        newcard.toVimInsertMode();
+        newcard.focus({mode: 'insert'});
         newcard.fryelement.scrollIntoView({block: 'nearest', inline: 'nearest'});
         return newcard;
     };
@@ -104,7 +100,7 @@ def Edit(items):
 
       const toVimEditor = () => {
         if (!isSeparator) {
-          currentItem.toVimEditor();
+          currentItem.focus({mode: 'normal'});
           e.preventDefault();
         }
       };
@@ -112,15 +108,10 @@ def Edit(items):
         if (!isSeparator || !currentItem.isUp) {
           const index = editItems.indexOf(currentItem);
           if (index >= 0 && index+1 < editItems.length) {
-            currentItem = editItems[index+1];
-            if (currentItem.fryname === 'EditorCard') {
-              currentItem.focus();
-            } else {
-              currentItem.focusUp();
-            }
+            editItems[index+1].focus();
           }
         } else {
-          currentItem.focusDown();
+          currentItem.focus({position:'end'});
         }
       }
       const moveUp = () => {
@@ -131,11 +122,11 @@ def Edit(items):
             if (currentItem.fryname === 'EditorCard') {
               currentItem.focus();
             } else {
-              currentItem.focusDown();
+              currentItem.focus({position: 'end'});
             }
           }
         } else {
-          currentItem.focusUp();
+          currentItem.focus();
         }
       }
       const moveLeft = () => {
@@ -183,7 +174,7 @@ def Edit(items):
               prev.count = prev.count + 1 + next.count;
               this.removeItem(next);
               this.removeItem(currentItem);
-              prev.focusDown();
+              prev.focus({position: 'end'});
             } else {
               // 只有上面是separator，与上面合在一起
               prev.maxCid = currentItem.model.cid;
@@ -194,7 +185,7 @@ def Edit(items):
                 next.focus();
               } else {
                 // 没有下一张卡片，切换到分割线上
-                prev.focusDown();
+                prev.focus();
               }
             }
           } else {
@@ -207,7 +198,7 @@ def Edit(items):
                 // 焦点优先切换到上一张卡片
                 prev.focus();
               } else {
-                next.focusUp();
+                next.focus();
               }
             } else {
               // 上下都不是separator，新建separator
@@ -219,7 +210,7 @@ def Edit(items):
               } else if (next) {
                 next.focus();
               } else {
-                separator.focusUp();
+                separator.focus();
               }
             }
           }
@@ -377,6 +368,20 @@ def Edit(items):
         item.fryelement.remove();
       }
     };
+
+    this.prevItem = (item) => {
+      const index = editItems.indexOf(item);
+      if (index > 0) {
+        return editItems[index-1];
+      }
+    }
+
+    this.nextItem = (item) => {
+      const index = editItems.indexOf(item);
+      if (index < editItems.length-1) {
+        return editItems[index+1];
+      }
+    }
     
     this.closest = (y) => {
       let delta = 999999999;
@@ -462,9 +467,16 @@ def CardSeparator(min_cid, max_cid, count):
     Object.defineProperty(this, 'maxCid', { get() {return maxCid;}, set(value) {maxCid = value;} });
     Object.defineProperty(this, 'count', { get() {return countSignal.peek();}, set(value) {countSignal.value = value} });
     this.isUp = false;
-    this.focusUp = () => { upButton.focus(); this.isUp = true; };
-    this.focusDown = () => { downButton.focus(); this.isUp = false; };
-    this.focus = () => { this.focusUp(); };
+    this.focus = (option={}) => {
+      const {position} = option;
+      if (!position || position === 'begin') {
+        upButton.focus();
+        this.isUp = true;
+      } else {
+        downButton.focus();
+        this.isUp = false;
+      }
+    };
     this.isCard = false;
     this.isSeparator = true;
   </script>
@@ -607,45 +619,74 @@ def EditorCard(card):
       }
     });
 
+    CodeMirror.on(editor.cm, 'inputEvent', (e) => {
+      if (e.type !== "handleKey") {
+        return;
+      }
+      const vim = editor.cm.state.vim;
+      if (!vim || vim.insertMode || vim.visualMode) {
+        return;
+      }
+      if (e.key === '<Up>'   || e.key === 'k' ||
+          e.key === '<Down>' || e.key === 'j') {
+        vim.lastCM6Index = editor.state.selection.main.head;
+      }
+    })
+
     CodeMirror.on(editor.cm, 'vim-keypress', (e) => {
       const vim = editor.cm.state.vim;
       if (!vim || vim.insertMode || vim.visualMode) {
         return;
       }
+      const pos = editor.state.selection.main.head;
+      if (vim.lastCM6Index !== pos) {
+        return;
+      }
+      vim.lastCM6Index = null;
       if (e === '<Up>' || e === 'k') {
-        if (editor.state.selection.main.head === 0) {
-
+        if (pos === 0) {
+          const prev = this.fryparent.prevItem(this);
+          if (prev) {
+            prev.focus({mode: 'normal', position: 'end'});
+          }
         }
       } else if (e === '<Down>' || e === 'j') {
         let maxPos = editor.state.doc.length - 1;
         maxPos = maxPos >= 0 ? maxPos : 0;
-        if (editor.state.selection.main.head === maxPos) {
-
+        if (pos === maxPos) {
+          const next = this.fryparent.nextItem(this);
+          if (next) {
+            next.focus({mode: 'normal', position: 'begin'});
+          }
         }
       }
     });
 
     //CodeMirror.on(editor.cm, 'inputEvent', (e) => {console.log('inputEvent:'); console.log(e);});
 
-    this.toVimEditor = () => {
-      editor.focus();
-    }
-
-    this.toVimInsertMode = () => {
-      if (editor && editor.cm && editor.cm.state && editor.cm.state.vim) {
-        const vim = editor.cm.state.vim;
-        if (!vim.insertMode) {
-          if (vim.visualMode) {
+    this.focus = (option={}) => {
+      const {mode, position} = option;
+      if (!mode || mode === 'card') {
+        elContainer.focus();
+      } else if (mode === 'normal' || mode === 'insert') {
+        if (editor.cm && editor.cm.state && editor.cm.state.vim) {
+          const vim = editor.cm.state.vim;
+          if (vim.insertMode || vim.visualMode) {
             Vim.handleKey(editor.cm, '<Esc>', 'user');
           }
-          Vim.handleKey(editor.cm, 'i', 'user');
+          if (position === 'begin') {
+            Vim.handleKey(editor.cm, 'gg', 'user');
+          } else if (position === 'end') {
+            Vim.handleKey(editor.cm, 'G', 'user');
+          }
+          if (mode === 'insert') {
+            Vim.handleKey(editor.cm, 'i', 'user');
+          }
         }
+        editor.focus();
+      } else {
+        throw `Invalid card mode: ${mode}`;
       }
-      editor.focus();
-    }
-
-    this.focus = () => {
-      elContainer.focus();
     }
 
     this.save = async () => {
