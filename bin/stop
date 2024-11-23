@@ -1,0 +1,2 @@
+#!/bin/bash
+killall $HOME/projects/frydea/venv/bin/python3
