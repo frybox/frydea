@@ -484,6 +484,7 @@ def CardSeparator(min_cid, max_cid, count):
 
 def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
+  word_count = len(card.content)
   <template>
     <div mx-4px w-sub,100%,8px min-h-200px mt-10px mb-10px
          border border-gray-bdx rounded-md
@@ -494,23 +495,47 @@ def EditorCard(card):
          tabindex="-1"
          ref=(elContainer)>
       <div flex-none h-30px w-full
-           flex justify-between 
+           flex justify-between items-center
            px-5px
+           text-xs text-gray-t
            bg-gray-el border-b border-gray-bdx
            rounded-t-md>
         <div flex justify-center>
-          <Icon type="file-text" scale={1.5}/>
+          <Icon type="file-text" scale={1}/>
           <p>![{card.id}](cardModel.displayName)</p>
         </div>
         <p>[{time}](cardModel.displayTime)</p>
       </div>
       <div ref=(elContent)
            flex-auto w-full
-           bg-secondary-bg overflow-hidden>
+           bg-hex-034 overflow-hidden>
+        <div animate-pulse w-9/10 mx-auto mt-5 h-full space-y-3>
+          <div bg-grayx w-full h-2 rounded></div>
+          <div bg-grayx w-full h-2 rounded></div>
+          <div bg-grayx w-2/5 h-2 rounded></div>
+          <div bg-grayx w-full h-2 rounded></div>
+          <div bg-grayx w-3/5 h-2 rounded></div>
+        </div>
       </div>
-      <div flex-none w-full h-30px
+      <div flex-none w-full h-30px px-10px
+           flex justify-between items-center
            bg-gray-el border-t border-gray-bdx
+           text-xs text-grayx
            rounded-b-md>
+        <p>[{word_count}](wordCount)<span>个字</span></p>
+        <div hidden ref=(saveDOM)>
+          <p ref=(saveButton)>
+            <Button info xs @click=(handleSave)>
+              保存
+            </Button>
+          </p>
+          <p ref=(savingDOM) bg-info rounded px-4px py-2px>
+            <span animate-spin>
+              <Icon type="update" />
+            </span>
+            <span ml-2px>保存中...</span>
+          </p>
+        </div>
       </div>
     </div>
   </template>
@@ -521,6 +546,7 @@ def EditorCard(card):
     import { vim, CodeMirror, Vim} from "@replit/codemirror-vim";
     import { cardManager } from "./frydea.js";
     import { oneDark } from "@codemirror/theme-one-dark";
+    import { signal, computed } from "fryhcs";
 
     let editor;
     let cardModel;
@@ -532,17 +558,36 @@ def EditorCard(card):
       cardModel = await cardManager.createCard(card);
     }
 
+    const handleSave = async () => {
+      saveDOM.removeAttribute('hidden');
+      savingDOM.removeAttribute('hidden');
+      savingDOM.classList.add('flex')
+      saveButton.setAttribute('hidden', '');
+      await cardModel.save();
+      saveDOM.setAttribute('hidden', '');
+      savingDOM.classList.remove('flex')
+      savingDOM.setAttribute('hidden', '');
+      saveButton.removeAttribute('hidden');
+    }
+
+    let wordCount = computed(()=>cardModel.content.value.length);
+
     const editableCompartment = new Compartment();
 
     const createDoc = () => {
       const updator = EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-              cardModel.content.value = update.state.doc.toString();
-              if (cardModel.isDirty) {
-                cardModel.displayName.value = `<strong><em>${cardModel.cid}*</em></strong>`;
-              } else {
-                cardModel.displayName.value = `${cardModel.cid}`;
-              }
+              const content = update.state.doc.toString();
+              cardModel.content.value = content;
+          }
+          if (cardModel.isDirty) {
+            cardModel.displayName.value = `<strong><em>${cardModel.cid}*</em></strong>`;
+            saveDOM.removeAttribute('hidden');
+            saveButton.removeAttribute('hidden');
+            savingDOM.setAttribute('hidden', '');
+          } else {
+            cardModel.displayName.value = `${cardModel.cid}`;
+            saveDOM.setAttribute('hidden', '');
           }
       });
       const frytheme = EditorView.theme({
@@ -691,7 +736,7 @@ def EditorCard(card):
     }
 
     this.save = async () => {
-      await cardModel.save();
+      await handleSave();
     }
 
     this.model = cardModel;

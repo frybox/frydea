@@ -15,7 +15,7 @@ Vim.mapCommand('<Esc>', 'action', 'toCardMode', {}, {context: 'normal'});
 CodeMirror.commands.save = async (cm) => {
   const editorCardElement = cm.cm6.dom.parentElement.parentElement;
   if (editorCardElement.frycomponents && editorCardElement.frycomponents[0]) {
-    await editorCardElement.frycomponents[0].model.save();
+    await editorCardElement.frycomponents[0].save();
   }
 }
 
