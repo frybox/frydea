@@ -47,17 +47,14 @@ def Edit(items):
 
     window.addEventListener('beforeunload', (e) => {
       if (!this.isReady) return;
-      let changed = 0;
       for (const item of editItems) {
         if (item.isCard && item.model.isDirty) {
-          changed ++;
+          // 根据mdn：https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event
+          // 如下三行每条语句都可触发弹窗提醒用户
+          e.preventDefault();
+          event.returnValue = true;
+          return true;
         }
-      }
-
-      if (changed > 0) {
-        const confirmationMessage = `${changed}张卡片尚未保存，确定离开吗？`;
-        event.returnValue = confirmationMessage;
-        return confirmationMessage;
       }
     })
 
