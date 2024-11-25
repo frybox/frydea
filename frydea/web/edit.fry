@@ -482,9 +482,24 @@ def CardSeparator(min_cid, max_cid, count):
   </script>
 
 
+def word_counter(value):
+  if not value: return 0
+  alnum = False
+  count = 0
+  for ch in value:
+    if ch.isalnum():
+      if not alnum:
+        alnum = True
+        count += 1
+    else:
+      alnum = False
+      if not ch.isspace():
+        count += 1
+  return count
+
 def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
-  word_count = len(card.content)
+  word_count = word_counter(card.content)
   <template>
     <div mx-4px w-sub,100%,8px min-h-200px mt-10px mb-10px
          border border-gray-bdx rounded-md
@@ -573,7 +588,33 @@ def EditorCard(card):
       saveButton.removeAttribute('hidden');
     }
 
-    const wordCount = computed(()=>cardModel.content.value.length);
+    const wordCounter = (value) => {
+      if (!value || value.length === 0)
+        return 0;
+      let alnum = false;
+      let count = 0;
+      for (let i=0; i<value.length; i++) {
+        const ch = value[i];
+        const code = value.charCodeAt(i);
+        if ((code >= 48 && code <= 57) ||
+            (code >= 65 && code <= 90) ||
+            (code >= 97 && code <= 122)) {
+          // alnum
+          if (!alnum) {
+            alnum = true;
+            count ++;
+          }
+        } else {
+          alnum = false;
+          if (code !== 32 && !(code >= 9 && code <= 13)) {
+            // 32: 空格，9：Tab，10：换行，11：垂直Tab，12：换页，13：回车
+            count ++;
+          }
+        }
+      }
+      return count;
+    }
+    const wordCount = computed(()=>wordCounter(cardModel.content.value));
 
     const modeName = signal('');
 
