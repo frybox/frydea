@@ -164,8 +164,7 @@ def PreviewCard(card):
     </div>
   </template>
   <script card={card.todict()} cardId={0}>
-    import * as dayjs from "dayjs";
-    import { marked } from "marked";
+    import { Marked } from "marked";
     import { cardManager } from "./frydea.js";
     import { effect } from "fryhcs";
 
@@ -176,8 +175,60 @@ def PreviewCard(card):
       cardModel = await cardManager.createCard(card);
     }
 
+    const marked = new Marked();
+    marked.use({
+      renderer: {
+        heading({tokens, depth}) {
+          const styles = ['text-2xl', 'text-xl', 'text-lg', 'text-base', 'text-base', 'text-base']
+          if (depth < 1) depth = 1;
+          if (depth > 6) depth = 6;
+          const style = styles[depth-1];
+          return `<h${depth} class="${style}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
+        },
+        list(token) {
+          const ordered = token.ordered;
+          const start = token.start;
+
+          let body = '';
+          for (let j = 0; j < token.items.length; j++) {
+            const item = token.items[j];
+            body += this.listitem(item);
+          }
+
+          const positionStyle = 'list-outside';
+          const typeStyle = ordered ? 'list-decimal' : 'list-disc';
+          const margin = 'ml-20px';
+
+          const type = ordered ? 'ol' : 'ul';
+          const startAttr = (ordered && start !== 1) ? (' start="' + start + '"') : '';
+          return `<${type}${startAttr} class="${typeStyle} ${positionStyle} ${margin}">\n${body}</${type}>\n`;
+        },
+        link({ href, title, tokens }) {
+          const text = this.parser.parseInline(tokens);
+          let cleanHref;
+          try {
+            cleanHref = encodeURI(href).replace(/%25/g, '%');
+          } catch {
+            cleanHref = null;
+          }
+          if (cleanHref === null) {
+            return text;
+          }
+          href = cleanHref;
+          let out = `<a href="${href}" target="_blank"`;
+          if (title) {
+            out += ' title="' + (escape(title)) + '"';
+          }
+          const styles = ['text-primary', 'hover:underline', 'hover:text-primaryx'];
+          const style = styles.join(' ');
+          out += ` class="${style}">${text}</a>`;
+          return out;
+        },
+      },
+    });
+
     this.dispose = effect(() => {
-      elContent.innerHTML = marked(cardModel.content.value);
+      elContent.innerHTML = marked.parse(cardModel.content.value);
     });
     this.focus = () => {
       elContainer.focus();
