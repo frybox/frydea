@@ -523,17 +523,20 @@ def EditorCard(card):
            text-xs text-grayx
            rounded-b-md>
         <p>[{word_count}](wordCount)<span>个字</span></p>
-        <div hidden ref=(saveDOM)>
-          <p ref=(saveButton)>
-            <Button info xs @click=(handleSave)>
-              保存
-            </Button>
-          </p>
-          <p ref=(savingDOM) bg-info rounded px-4px py-2px>
-            <span animate-spin>
-              <Icon type="update" />
+        <p>[](modeName)</p>
+        <div>
+          <p hidden ref=(saveDOM)>
+            <span ref=(saveButton)>
+              <Button info xs @click=(handleSave)>
+                保存
+              </Button>
             </span>
-            <span ml-2px>保存中...</span>
+            <span ref=(savingDOM) bg-info rounded px-4px py-2px>
+              <span animate-spin>
+                <Icon type="update" />
+              </span>
+              <span ml-2px>保存中...</span>
+            </span>
           </p>
         </div>
       </div>
@@ -570,7 +573,9 @@ def EditorCard(card):
       saveButton.removeAttribute('hidden');
     }
 
-    let wordCount = computed(()=>cardModel.content.value.length);
+    const wordCount = computed(()=>cardModel.content.value.length);
+
+    const modeName = signal('');
 
     const editableCompartment = new Compartment();
 
@@ -646,6 +651,19 @@ def EditorCard(card):
     // 让editor.contentDOM在contenteditable="false"的情况下也可接受焦点
     editor.contentDOM.tabIndex='-1';
 
+    editor.contentDOM.addEventListener('focus', () => {
+      if (editor && editor.cm && editor.cm.state && editor.cm.state.vim) {
+        const vim = editor.cm.state.vim;
+        if (vim.insertMode) {
+          modeName.value = 'Vim Insert Mode';
+        } else if (vim.visualMode) {
+          modeName.value = 'Vim Visual Mode';
+        } else {
+          modeName.value = 'Vim Normal Mode';
+        }
+      }
+    })
+
     CodeMirror.on(editor.cm, 'vim-mode-change', (e) => {
       // 当前代码在editor.update中执行，所以不能同步执行新的update(dispatch)，
       // 需要放到异步代码(queueMicrotask)中执行
@@ -662,6 +680,11 @@ def EditorCard(card):
           editor.dispatch({effects: editableCompartment.reconfigure(EditorView.editable.of(false))});
         });
       }
+
+      if (e.mode === 'insert') modeName.value = 'Vim Insert Mode';
+      else if (e.mode === 'replace') modeName.value = 'Vim Replace Mode';
+      else if (e.mode === 'normal') modeName.value = 'Vim Normal Mode';
+      else if (e.mode === 'visual') modeName.value = 'Vim Visual Mode';
     });
 
     CodeMirror.on(editor.cm, 'inputEvent', (e) => {
@@ -707,8 +730,6 @@ def EditorCard(card):
         }
       }
     });
-
-    //CodeMirror.on(editor.cm, 'inputEvent', (e) => {console.log('inputEvent:'); console.log(e);});
 
     this.focus = (option={}) => {
       const {mode, position} = option;
