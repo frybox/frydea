@@ -576,16 +576,26 @@ def EditorCard(card):
       cardModel = await cardManager.createCard(card);
     }
 
+    const setSaveState = (state) => {
+      if (state === 'clear') {
+        saveDOM.setAttribute('hidden', '');
+      } else if (state === 'saving') {
+        saveButton.setAttribute('hidden', '');
+        savingDOM.removeAttribute('hidden');
+        savingDOM.classList.add('flex')
+        saveDOM.removeAttribute('hidden');
+      } else if (state === 'save') {
+        savingDOM.classList.remove('flex');
+        savingDOM.setAttribute('hidden', '');
+        saveButton.removeAttribute('hidden');
+        saveDOM.removeAttribute('hidden');
+      }
+    }
+
     const handleSave = async () => {
-      saveDOM.removeAttribute('hidden');
-      savingDOM.removeAttribute('hidden');
-      savingDOM.classList.add('flex')
-      saveButton.setAttribute('hidden', '');
+      setSaveState('saving');
       await cardModel.save();
-      saveDOM.setAttribute('hidden', '');
-      savingDOM.classList.remove('flex')
-      savingDOM.setAttribute('hidden', '');
-      saveButton.removeAttribute('hidden');
+      setSaveState('clear');
     }
 
     const wordCounter = (value) => {
@@ -599,7 +609,7 @@ def EditorCard(card):
         if ((code >= 48 && code <= 57) ||
             (code >= 65 && code <= 90) ||
             (code >= 97 && code <= 122)) {
-          // alnum
+          // 数字、大写字母、小写字母
           if (!alnum) {
             alnum = true;
             count ++;
@@ -628,12 +638,10 @@ def EditorCard(card):
           }
           if (cardModel.isDirty) {
             cardModel.displayName.value = `<strong><em>${cardModel.cid}*</em></strong>`;
-            saveDOM.removeAttribute('hidden');
-            saveButton.removeAttribute('hidden');
-            savingDOM.setAttribute('hidden', '');
+            setSaveState('save');
           } else {
             cardModel.displayName.value = `${cardModel.cid}`;
-            saveDOM.setAttribute('hidden', '');
+            setSaveState('clear');
           }
       });
       const frytheme = EditorView.theme({
