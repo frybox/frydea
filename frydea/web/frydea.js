@@ -1,6 +1,11 @@
 import { signal, computed } from "fryhcs";
 import { Vim, CodeMirror } from "@replit/codemirror-vim";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 Vim.defineAction('toCardMode', (cm, args) => {
   // 将焦点从CM编辑器挪到EditorCard元素身上
@@ -20,8 +25,10 @@ CodeMirror.commands.save = async (cm) => {
 }
 
 
-const getTime = (updateTime) => dayjs(new Date(updateTime)).format('YYYY-MM-DD HH:mm');
-const getDay = (time) => dayjs(time).format('YYYY-MM-DD');
+//tz = 'America/New_York';
+const tz = 'Asia/Shanghai';
+const getTime = (updateTime) => dayjs(new Date(updateTime)).tz(tz).format('YYYY-MM-DD HH:mm');
+const getDay = (time) => dayjs(time).tz(tz).format('YYYY-MM-DD');
 
 class CardModel {
   constructor(card, manager) {
