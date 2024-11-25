@@ -58,6 +58,44 @@ def Edit(items):
       }
     })
 
+    let syncTimeoutId;
+    let syncCounter = 0;
+    const syncWithServer = async () => {
+      console.log("syncWithServer...");
+      let saved = 0;
+      let smallestCard = null;
+      let smallestSize = 9999999;
+      try {
+        for (const item of editItems) {
+          if (item.isCard) {
+            if(item.model.isDirty) {
+              await item.save();
+              saved ++;
+            }
+            const size = item.model.content.peek().length;
+            if (size < smallestSize) {
+              smallestSize = size;
+              smallestCard = item;
+            }
+          }
+        }
+        if (saved === 0) {
+          syncCounter ++;
+          if (syncCounter === 10) {
+            syncCounter = 0;
+            if (smallestCard) {
+              await smallestCard.model.fetch();
+            }
+          }
+        } else {
+          syncCounter = 0;
+        }
+      } catch {}
+      syncTimeoutId = setTimeout(syncWithServer, 60*1000);
+    }
+
+    this.ready(syncWithServer);
+
     const handleDoubleClick = async (e) => {
       const comp = domComponent(e.target);
       if (comp.fryname === 'EditorCard') {
