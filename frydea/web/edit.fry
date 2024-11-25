@@ -45,6 +45,22 @@ def Edit(items):
         }
     });
 
+    window.addEventListener('beforeunload', (e) => {
+      if (!this.isReady) return;
+      let changed = 0;
+      for (const item of editItems) {
+        if (item.isCard && item.model.isDraft) {
+          changed ++;
+        }
+      }
+
+      if (changed > 0) {
+        const confirmationMessage = `${changed}张卡片尚未保存，确定离开吗？`;
+        event.returnValue = confirmationMessage;
+        return confirmationMessage;
+      }
+    })
+
     const handleDoubleClick = async (e) => {
       const comp = domComponent(e.target);
       if (comp.fryname === 'EditorCard') {
@@ -119,7 +135,7 @@ def Edit(items):
           const index = editItems.indexOf(currentItem);
           if (index > 0) {
             currentItem = editItems[index-1];
-            if (currentItem.fryname === 'EditorCard') {
+            if (currentItem.isCard) {
               currentItem.focus();
             } else {
               currentItem.focus({position: 'end'});
@@ -235,7 +251,7 @@ def Edit(items):
           }
         } else {
           for (const item of editItems) {
-            if (item.fryname === 'EditorCard')
+            if (item.isCard)
               await item.save();
           }
           console.log(`all of ${editItems.length} cards are saved.`);
