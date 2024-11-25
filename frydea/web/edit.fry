@@ -49,7 +49,7 @@ def Edit(items):
       if (!this.isReady) return;
       let changed = 0;
       for (const item of editItems) {
-        if (item.isCard && item.model.isDraft) {
+        if (item.isCard && item.model.isDirty) {
           changed ++;
         }
       }
