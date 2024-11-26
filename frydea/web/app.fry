@@ -47,7 +47,7 @@ def Header(user):
         </p>
       </div>
       <div flex gap-3 m-5px text-sm items-center text-primary-contrast>
-        <div>
+        <div max-md:hidden>
           <span ref=(centeredIcon) @click=(toUncentered) cursor-pointer>
             <CenteredLayoutIcon scale={1}/>
           </span>
@@ -99,7 +99,7 @@ def Body(cidtimes, items):
 
 def LeftSideBar():
   <template>
-    <div box-border h-full w-30px bg-secondary>
+    <div box-border h-full w-30px max-md:w-0 bg-secondary>
     </div>
   </template>
   <script>
@@ -107,7 +107,7 @@ def LeftSideBar():
 
 def RightSideBar():
   <template>
-    <div box-border h-full w-30px bg-secondary>
+    <div box-border h-full w-30px max-md:w-0 bg-secondary>
     </div>
   </template>
   <script>
@@ -117,8 +117,8 @@ def Main(cidtimes, items):
   left = <Index ref=(indexArea) {cidtimes} />
   right = <Preview ref=(previewArea) />
   <template>
-    <div box-border w-sub,100%,60px mx-auto h-full bg-gray-bg>
-      <HCenter {left} {right} ref=(mainArea)>
+    <div box-border w-sub,100%,60px max-md:w-full mx-auto h-full bg-gray-bg>
+      <HCenter {left} {right} ref=(mainArea) min_width="md">
         <Edit ref=(editArea) {items} width="3fr" />
       </HCenter>
     </div>
