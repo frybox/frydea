@@ -6,6 +6,7 @@ def Preview():
   card = Card()
   <template>
     <div ref=(container)
+         id="preview-area"
          box-border h-full bg-secondary-bgx
          h-full overflow-auto p-4px
          @keydown=(handleCardKey)>

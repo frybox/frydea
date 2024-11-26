@@ -12,6 +12,7 @@ def Edit(items):
       return <CardSeparator refall=(editItems) {**item} />
   <template>
     <div ref=(container)
+         id="edit-area"
          bg-primary-elx box-border h-full overflow-auto
          @dblclick=(handleDoubleClick)
          @focusin=(handleFocusIn)
