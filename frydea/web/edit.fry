@@ -62,36 +62,30 @@ def Edit(items):
     let syncCounter = 0;
     const syncWithServer = async () => {
       console.log("syncWithServer...");
-      let saved = 0;
-      let smallestCard = null;
-      let smallestSize = 9999999;
+      let dirtyCount = 0;
       try {
         for (const item of editItems) {
           if (item.isCard) {
             if(item.model.isDirty) {
-              await item.save();
-              saved ++;
-            }
-            const size = item.model.content.peek().length;
-            if (size < smallestSize) {
-              smallestSize = size;
-              smallestCard = item;
+              dirtyCount ++;
+              if (!item.model.changedAfterLastCheck) {
+                await item.save();
+              }
+              item.model.changedAfterLastCheck = false;
             }
           }
         }
-        if (saved === 0) {
+        if (dirtyCount === 0) {
           syncCounter ++;
-          if (syncCounter === 10) {
+          if (syncCounter === 4*12) {
             syncCounter = 0;
-            if (smallestCard) {
-              await smallestCard.model.fetch();
-            }
+            await cardManager.sync();
           }
         } else {
           syncCounter = 0;
         }
       } catch {}
-      syncTimeoutId = setTimeout(syncWithServer, 60*1000);
+      syncTimeoutId = setTimeout(syncWithServer, 5*60*1000);
     }
 
     this.ready(syncWithServer);
@@ -686,6 +680,7 @@ def EditorCard(card):
           if (update.docChanged) {
               const content = update.state.doc.toString();
               cardModel.content.value = content;
+              cardModel.changedAfterLastCheck = true;
           }
           if (cardModel.isDirty) {
             cardModel.displayName.value = `<strong><em>${cardModel.cid}*</em></strong>`;

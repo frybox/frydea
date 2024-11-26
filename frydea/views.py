@@ -176,27 +176,27 @@ def update_card(cid):
 @app.get('/cards/<int:cid>')
 @login_required
 def get_card(cid):
+    """
+    获取指定cid的卡片。
+    在cid为0的特殊情况下，不会获取card，只用来检查服务器是否有新的更新。
+    """
     user = current_user 
-    query = db.select(Card).where(Card.user_id == user.id, Card.id == cid)
-    card = db.session.scalars(query).first()
-    if not card:
-        abort(404)
+    if cid == 0:
+        result = dict(code=0)
+    else:
+        query = db.select(Card).where(Card.user_id == user.id, Card.id == cid)
+        card = db.session.scalars(query).first()
+        if not card:
+            abort(404)
+        result = dict(code=0, card=card.todict())
     last_clid = request.args.get('last_clid')
     if last_clid is not None:
         last_clid = int(last_clid)
         clid = max_clid()
         changes = new_changes(user.id, last_clid)
-        return {
-            'code': 0,
-            'clid': clid,
-            'changes': changes,
-            'card': card.todict(),
-        }
-    else:
-        return {
-            'code': 0,
-            'card': card.todict(),
-        }
+        result.update({}, clid=clid, changes=changes)
+    return result
+
 
 @app.get('/cards')
 @login_required

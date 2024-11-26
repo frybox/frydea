@@ -84,7 +84,7 @@ class CardModel {
       throw `Can't fetch for draft card`
     }
     const baseUrl = window.location.origin;
-    const url = `${baseUrl}/cards/${this.cid}?last_clid=${cardManager.clid}`;
+    const url = `${baseUrl}/cards/${this.cid}?last_clid=${this.manager.clid}`;
     const response = await fetch(url);
     const result = await response.json();
     if (result.code === 0) {
@@ -121,6 +121,7 @@ class CardModel {
       if (result.code === 0) {
         console.log('server updated');
         this.serverUpdate(result.card);
+        // manager.serverUpdate是异步方法，如下代码可能下载多张卡片，异步执行
         this.manager.serverUpdate(result.clid, result.changes);
       } else {
         console.log(result.msg);
@@ -296,6 +297,16 @@ class CardManager {
     const start = cids.indexOf(minCid);
     const end = cids.indexOf(maxCid) + 1;
     return cids.slice(start, end);
+  }
+
+  async sync() {
+    const baseUrl = window.location.origin;
+    const url = `${baseUrl}/cards/0?last_clid=${this.clid}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.code === 0) {
+      await this.serverUpdate(result.clid, result.changes);
+    }
   }
 
   async serverUpdate(clid, changes) {
