@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import url_for
 from fryhcs import Element
-from fryui import HCenter
+from fryui import HCenter, CenteredLayoutIcon, ViewVerticalIcon
 from frydea.models import Card as CardModel
 from frydea.web.preview import Preview
 from frydea.web.edit import Edit
@@ -46,7 +46,15 @@ def Header(user):
           飞思卡片笔记
         </p>
       </div>
-      <div flex gap-3 m-5px text-sm>
+      <div flex gap-3 m-5px text-sm items-center text-primary-contrast>
+        <div>
+          <span ref=(centeredIcon) @click=(toUncentered) cursor-pointer>
+            <CenteredLayoutIcon scale={1}/>
+          </span>
+          <span hidden ref=(uncenteredIcon) @click=(toCentered) cursor-pointer>
+            <ViewVerticalIcon scale={1}/>
+          </span>
+        </div>
         <p>
           {user.nickname}
         </p>
@@ -57,20 +65,47 @@ def Header(user):
     </div>
   </template>
   <script>
+    const toUncentered = () => {
+      if (this.isReady) {
+        if (this.g.mainArea.isCentered()) {
+          this.g.mainArea.setCentered(false);
+          centeredIcon.setAttribute('hidden', '');
+          uncenteredIcon.removeAttribute('hidden');
+        }
+      }
+    };
+    const toCentered = () => {
+      if (this.isReady) {
+        if (!this.g.mainArea.isCentered()) {
+          this.g.mainArea.setCentered(true);
+          centeredIcon.removeAttribute('hidden');
+          uncenteredIcon.setAttribute('hidden', '');
+        }
+      }
+    };
   </script>
 
 
 def Body(cidtimes, items):
   <template>
     <div flex mt-30px h-sub,100%,30px w-full>
-      <SideBar/>
+      <LeftSideBar/>
       <Main {cidtimes} {items} />
+      <RightSideBar/>
     </div>
   </template>
   <script>
   </script>
 
-def SideBar():
+def LeftSideBar():
+  <template>
+    <div box-border h-full w-30px bg-secondary>
+    </div>
+  </template>
+  <script>
+  </script>
+
+def RightSideBar():
   <template>
     <div box-border h-full w-30px bg-secondary>
     </div>
@@ -82,8 +117,8 @@ def Main(cidtimes, items):
   left = <Index ref=(indexArea) {cidtimes} />
   right = <Preview ref=(previewArea) />
   <template>
-    <div box-border w-sub,100%,30px mx-auto h-full bg-gray-bg>
-      <HCenter {left} {right}>
+    <div box-border w-sub,100%,60px mx-auto h-full bg-gray-bg>
+      <HCenter {left} {right} ref=(mainArea)>
         <Edit ref=(editArea) {items} width="3fr" />
       </HCenter>
     </div>
@@ -91,7 +126,7 @@ def Main(cidtimes, items):
   <script>
     import { cardManager } from "./frydea.js";
 
-    Object.assign(this.g, {indexArea, previewArea, editArea});
+    Object.assign(this.g, {indexArea, previewArea, editArea, mainArea});
     cardManager.indexArea = indexArea;
     cardManager.editArea = editArea;
     cardManager.previewArea = previewArea;

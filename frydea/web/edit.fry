@@ -750,11 +750,11 @@ def EditorCard(card):
       if (editor && editor.cm && editor.cm.state && editor.cm.state.vim) {
         const vim = editor.cm.state.vim;
         if (vim.insertMode) {
-          modeName.value = 'Vim Insert Mode';
+          modeName.value = 'Vim Insert模式';
         } else if (vim.visualMode) {
-          modeName.value = 'Vim Visual Mode';
+          modeName.value = 'Vim Visual模式';
         } else {
-          modeName.value = 'Vim Normal Mode';
+          modeName.value = 'Vim Normal模式';
         }
       }
     })
