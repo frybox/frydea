@@ -758,6 +758,9 @@ def EditorCard(card):
           modeName.value = 'Vim Normal模式';
         }
       }
+      if (editor.contentDOM) {
+        editor.contentDOM.scrollIntoView({block: 'nearest', inline: 'nearest'});
+      }
     })
 
     CodeMirror.on(editor.cm, 'vim-mode-change', (e) => {
