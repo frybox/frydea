@@ -40,7 +40,7 @@ def Header(user):
   <template>
     <div fixed top-0 w-full h-30px z-100 bg-primary
          px-10px
-         flex justify-between>
+         flex justify-between items-center>
       <div text-primary-contrast text-bold>
         <p>
           飞思卡片笔记

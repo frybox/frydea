@@ -20,10 +20,15 @@ def Edit(items):
       <EditorCard frytemplate ref=(cardTemplate) card={empty_card} />
       <CardSeparator frytemplate ref=(separatorTemplate) {**separator_args} />
       {comp(item) for item in items}
-      <div ref=(opArea) w-full text-center mt-30px>
+      <div ref=(opArea) w-full text-center mt-30px flex flex-col space-y-10px>
         <Button @click=(newDraftCard) wide info>
           <Icon type="plus" class="h-8 w-8"/>
         </Button>
+        <Button @click=(handleLog) wide info>
+          打印日志
+        </Button>
+        <div mt-10px ref=(logger)>
+        </div>
       </div>
     </div>
   </template>
@@ -104,12 +109,23 @@ def Edit(items):
         this.g.indexArea.updateSelection(comp.model.cid);
       }
     }
+
+
+    const log = (msg) => {
+        const dom = document.createElement('p');
+        dom.textContent = msg;
+        logger.appendChild(dom);
+    }
+    const handleLog = () => {
+        log(document.documentElement.clientHeight);
+    };
+
     const newDraftCard = async () => {
         const newcard = await cardTemplate.create();
         container.insertBefore(newcard.fryelement, opArea);
         editItems.push(newcard);
         newcard.focus({mode: 'insert'});
-        newcard.fryelement.scrollIntoView({block: 'nearest', inline: 'nearest'});
+        newcard.fryelement.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
         return newcard;
     };
 
@@ -485,7 +501,7 @@ def CardSeparator(min_cid, max_cid, count):
       } else {
         countSignal.value = newCount;
         minCid = nextCid;
-        this.fryelement.scrollIntoView({block: 'nearest', inline: 'nearest'});
+        this.fryelement.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
       }
     };
 
@@ -758,9 +774,9 @@ def EditorCard(card):
           modeName.value = 'Vim Normal模式';
         }
       }
-      if (editor.contentDOM) {
-        editor.contentDOM.scrollIntoView({block: 'nearest', inline: 'nearest'});
-      }
+      setTimeout(() => {
+          elContainer.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
+      }, 150);
     })
 
     CodeMirror.on(editor.cm, 'vim-mode-change', (e) => {
