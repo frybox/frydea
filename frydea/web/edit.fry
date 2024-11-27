@@ -20,7 +20,7 @@ def Edit(items):
       <EditorCard frytemplate ref=(cardTemplate) card={empty_card} />
       <CardSeparator frytemplate ref=(separatorTemplate) {**separator_args} />
       {comp(item) for item in items}
-      <div ref=(opArea) w-full text-center mt-30px mb-100px flex flex-col space-y-10px>
+      <div ref=(opArea) w-full text-center mt-30px mb-100px flex flex-col space-y-10px justify-center items-center>
         <Button @click=(newDraftCard) wide info>
           <Icon type="plus" class="h-8 w-8"/>
         </Button>
