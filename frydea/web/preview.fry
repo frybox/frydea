@@ -166,7 +166,7 @@ def PreviewCard(card):
         <div flex items-center space-x-2px>
           <p>[{time}](cardModel.displayTime)</p>
           <Button ghost xs @click=(handleClose)>
-            关闭
+            <Icon type="cross-2" />
           </Button>
         </div>
       </div>
