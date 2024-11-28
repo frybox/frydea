@@ -1,5 +1,5 @@
 from fryhcs import Element
-from fryui import Icon
+from fryui import Icon, Button
 from frydea.models import Card
 
 def Preview():
@@ -44,20 +44,37 @@ def Preview():
       }
       return card;
     }
+
+    this.closeCard = (card) => {
+      let nextCard;
+      const index = previewCards.indexOf(card);
+      if (index > 0) {
+          nextCard = previewCards[index - 1];
+      } else if (index < previewCards.length - 1) {
+          nextCard = previewCards[index + 1];
+      } else {
+          nextCard = closestEditCard(card);
+      }
+      card.close();
+      previewCards.splice(index, 1);
+      if (nextCard) nextCard.focus();
+    }
+
+    const closestEditCard = (currentCard) => {
+      if (this.isReady) {
+        let rect = currentCard.fryelement.getBoundingClientRect();
+        console.log(rect);
+        let middle = rect.top + rect.height/2;
+        return this.g.editArea.closest(middle);
+      }
+    }
+
     const handleCardKey = (e) => {
       console.log(e);
       if (!e.target.frycomponents) {
         return;
       }
       let currentCard = e.target.frycomponents[0];
-      const closestEditCard = () => {
-        if (this.isReady) {
-          let rect = currentCard.fryelement.getBoundingClientRect();
-          console.log(rect);
-          let middle = rect.top + rect.height/2;
-          return this.g.editArea.closest(middle);
-        }
-      }
       const moveDown = () => {
         const index = previewCards.indexOf(currentCard);
         if (index >= 0 && index+1 < previewCards.length) {
@@ -73,7 +90,7 @@ def Preview():
         }
       }
       const moveLeft = () => {
-        const editCard = closestEditCard();
+        const editCard = closestEditCard(currentCard);
         if (editCard) editCard.focus();
         console.log('moveLeft');
       }
@@ -89,24 +106,15 @@ def Preview():
       const closeCard = (all=false) => {
         let nextCard;
         if (all) {
-            nextCard = closestEditCard();
+            nextCard = closestEditCard(currentCard);
             for (const card of previewCards) {
                 card.close();
             }
             previewCards.length = 0;
+            if (nextCard) nextCard.focus();
         } else {
-            const index = previewCards.indexOf(currentCard);
-            if (index > 0) {
-                nextCard = previewCards[index - 1];
-            } else if (index < previewCards.length - 1) {
-                nextCard = previewCards[index + 1];
-            } else {
-                nextCard = closestEditCard();
-            }
-            currentCard.close();
-            previewCards.splice(index, 1);
+            this.closeCard(currentCard);
         }
-        if (nextCard) nextCard.focus();
         console.log('closeCard');
       }
       const broadenCard = () => {
@@ -155,7 +163,12 @@ def PreviewCard(card):
           <Icon type="file-text" />
           <p>![{cid}](cardModel.displayName)</p>
         </div>
-        <p>[{time}](cardModel.displayTime)</p>
+        <div flex items-center>
+          <p>[{time}](cardModel.displayTime)</p>
+          <Button ghost xs @click=(handleClose)>
+            关闭
+          </Button>
+        </div>
       </div>
       <div ref=(elContent)
            flex-auto w-full
@@ -174,6 +187,12 @@ def PreviewCard(card):
       cardModel = cardManager.getCard(cardId);
     } else {
       cardModel = await cardManager.createCard(card);
+    }
+
+    const handleClose = () => {
+      if (this.isReady) {
+        this.g.previewArea.closeCard(this);
+      }
     }
 
     const marked = new Marked();

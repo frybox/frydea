@@ -217,65 +217,6 @@ def Edit(items):
       }
       const closeCard = async () => {
         if (!isSeparator) {
-          if (currentItem.model.isDirty) {
-            console.log("该卡片尚未保存到服务器，不能关闭。请先保存到服务器，或回滚当前修改。");
-            return;
-          }
-          const index = editItems.indexOf(currentItem);
-          let prev = null, next = null;
-          if (index > 0) {
-            prev = editItems[index-1];
-          }
-          if (index < editItems.length-1) {
-            next = editItems[index+1];
-          }
-          if (prev && prev.isSeparator) {
-            if (next && next.isSeparator) {
-              // 上下都是separator，需要把两个合二为一
-              prev.maxCid = next.maxCid;
-              prev.count = prev.count + 1 + next.count;
-              this.removeItem(next);
-              this.removeItem(currentItem);
-              prev.focus({position: 'end'});
-            } else {
-              // 只有上面是separator，与上面合在一起
-              prev.maxCid = currentItem.model.cid;
-              prev.count = prev.count + 1;
-              this.removeItem(currentItem);
-              if (next) {
-                // 焦点优先切换到下一张卡片
-                next.focus();
-              } else {
-                // 没有下一张卡片，切换到分割线上
-                prev.focus();
-              }
-            }
-          } else {
-            if (next && next.isSeparator) {
-              // 只有下面是separator，与下面合二为一
-              next.minCid = currentItem.model.cid;
-              next.count = next.count + 1;
-              this.removeItem(currentItem);
-              if (prev) {
-                // 焦点优先切换到上一张卡片
-                prev.focus();
-              } else {
-                next.focus();
-              }
-            } else {
-              // 上下都不是separator，新建separator
-              const cid = currentItem.model.cid;
-              const separator = await this.newSeparatorBefore({minCid: cid, maxCid: cid, count: 1}, currentItem);
-              this.removeItem(currentItem);
-              if (prev) {
-                prev.focus();
-              } else if (next) {
-                next.focus();
-              } else {
-                separator.focus();
-              }
-            }
-          }
         }
       }
       const deleteCard = (force=false) => {
@@ -309,6 +250,10 @@ def Edit(items):
           await this.g.previewArea.preview({cardId});
         }
       }
+      const newCard = async () => {
+        await newDraftCard();
+        e.preventDefault();
+      }
       const cardKeyMap = {
         Enter: toVimEditor,
         Space: toVimEditor,
@@ -322,8 +267,8 @@ def Edit(items):
         KeyL: moveRight,
         ArrowRight: moveRight,
         KeyG: () => {moveEnd(e.shiftKey)},
-        KeyA: newDraftCard,
-        KeyO: newDraftCard,
+        KeyA: newCard,
+        KeyO: newCard,
         KeyC: closeCard,
         KeyD: () => {deleteCard(e.shiftKey)},
         KeyB: broadenCard,
@@ -367,6 +312,69 @@ def Edit(items):
       }
       return newitem;
     };
+
+    this.closeCard = async (card) => {
+      if (card.model.isDirty) {
+        console.log("该卡片尚未保存到服务器，不能关闭。请先保存到服务器，或回滚当前修改。");
+        return;
+      }
+      const index = editItems.indexOf(card);
+      let prev = null, next = null;
+      if (index > 0) {
+        prev = editItems[index-1];
+      }
+      if (index < editItems.length-1) {
+        next = editItems[index+1];
+      }
+      if (prev && prev.isSeparator) {
+        if (next && next.isSeparator) {
+          // 上下都是separator，需要把两个合二为一
+          prev.maxCid = next.maxCid;
+          prev.count = prev.count + 1 + next.count;
+          this.removeItem(next);
+          this.removeItem(card);
+          prev.focus({position: 'end'});
+        } else {
+          // 只有上面是separator，与上面合在一起
+          prev.maxCid = card.model.cid;
+          prev.count = prev.count + 1;
+          this.removeItem(card);
+          if (next) {
+            // 焦点优先切换到下一张卡片
+            next.focus();
+          } else {
+            // 没有下一张卡片，切换到分割线上
+            prev.focus();
+          }
+        }
+      } else {
+        if (next && next.isSeparator) {
+          // 只有下面是separator，与下面合二为一
+          next.minCid = card.model.cid;
+          next.count = next.count + 1;
+          this.removeItem(card);
+          if (prev) {
+            // 焦点优先切换到上一张卡片
+            prev.focus();
+          } else {
+            next.focus();
+          }
+        } else {
+          // 上下都不是separator，新建separator
+          const cid = card.model.cid;
+          const separator = await this.newSeparatorBefore({minCid: cid, maxCid: cid, count: 1}, card);
+          this.removeItem(card);
+          if (prev) {
+            prev.focus();
+          } else if (next) {
+            next.focus();
+          } else {
+            separator.focus();
+          }
+        }
+      }
+
+    }
 
     this.openCard = async (cid) => {
       for (const item of editItems) {
@@ -615,6 +623,11 @@ def EditorCard(card):
               <span ml-2px>保存中...</span>
             </span>
           </p>
+          <p hidden ref=(closeDOM)>
+            <Button ghost xs @click=(handleClose)>
+              关闭
+            </Button>
+          </p>
         </div>
       </div>
     </div>
@@ -641,12 +654,15 @@ def EditorCard(card):
     const setSaveState = (state) => {
       if (state === 'clear') {
         saveDOM.setAttribute('hidden', '');
+        closeDOM.removeAttribute('hidden');
       } else if (state === 'saving') {
+        closeDOM.setAttribute('hidden', '');
         saveButton.setAttribute('hidden', '');
         savingDOM.removeAttribute('hidden');
         savingDOM.classList.add('flex')
         saveDOM.removeAttribute('hidden');
       } else if (state === 'save') {
+        closeDOM.setAttribute('hidden', '');
         savingDOM.classList.remove('flex');
         savingDOM.setAttribute('hidden', '');
         saveButton.removeAttribute('hidden');
@@ -658,6 +674,10 @@ def EditorCard(card):
       setSaveState('saving');
       await cardModel.save();
       setSaveState('clear');
+    }
+
+    const handleClose = async () => {
+      this.g.editArea.closeCard(this);
     }
 
     const wordCounter = (value) => {
