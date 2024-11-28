@@ -148,22 +148,22 @@ def PreviewCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
   cid = card.id if card.id else 0
   <template>
-    <div mx-4px w-sub,100%,8px mb-20px
+    <div mx-4px w-sub,100%,8px mb-20px min-h-60px
          border border-gray-bdx rounded-md
          shadow hover:shadow-md
          focus="outline outline-4 outline-primaryax"
          flex flex-col
          tabindex="-1"
          ref=(elContainer)>
-      <div flex-none h-20px w-full px-5px py-2px
-           flex justify-between 
+      <div flex-none h-30px w-full px-5px
+           flex justify-between items-center 
            text-12px text-grayx
            bg-gray-el border-b border-gray-bdx rounded-t-md>
         <div flex>
           <Icon type="file-text" />
           <p>![{cid}](cardModel.displayName)</p>
         </div>
-        <div flex items-center>
+        <div flex items-center space-x-2px>
           <p>[{time}](cardModel.displayTime)</p>
           <Button ghost xs @click=(handleClose)>
             关闭
