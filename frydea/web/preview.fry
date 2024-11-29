@@ -205,6 +205,10 @@ def PreviewCard(card):
           const style = styles[depth-1];
           return `<h${depth} class="${style}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
         },
+        paragraph({tokens}) {
+          const classes = ['mb-10px'].join(' ');
+          return `<p class="${classes}">${this.parser.parseInline(tokens)}</p>\n`;
+        },
         list(token) {
           const ordered = token.ordered;
           const start = token.start;
