@@ -821,10 +821,10 @@ def EditorCard(card):
         });
       }
 
-      if (e.mode === 'insert') modeName.value = 'Vim Insert Mode';
-      else if (e.mode === 'replace') modeName.value = 'Vim Replace Mode';
-      else if (e.mode === 'normal') modeName.value = 'Vim Normal Mode';
-      else if (e.mode === 'visual') modeName.value = 'Vim Visual Mode';
+      if (e.mode === 'insert') modeName.value = 'Vim Insert模式';
+      else if (e.mode === 'replace') modeName.value = 'Vim Replace模式';
+      else if (e.mode === 'normal') modeName.value = 'Vim Normal模式';
+      else if (e.mode === 'visual') modeName.value = 'Vim Visual模式';
     });
 
     CodeMirror.on(editor.cm, 'inputEvent', (e) => {
