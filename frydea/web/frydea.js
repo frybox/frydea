@@ -55,6 +55,10 @@ class CardModel {
     return this.cid === 0;
   }
 
+  get isEmptyDraft() {
+    return this.cid === 0 && this.content.peek().length === 0;
+  }
+
   get isDirty() {
     return this.isDraft || this.serverContent !== this.content.peek();
   }

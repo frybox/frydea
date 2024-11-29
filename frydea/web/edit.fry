@@ -54,7 +54,9 @@ def Edit(items):
     window.addEventListener('beforeunload', (e) => {
       if (!this.isReady) return;
       for (const item of editItems) {
-        if (item.isCard && item.model.isDirty) {
+        if (item.isCard &&
+            !item.model.isEmptyDraft &&
+            item.model.isDirty) {
           // 根据mdn：https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event
           // 如下三行每条语句都可触发弹窗提醒用户
           e.preventDefault();
@@ -72,6 +74,9 @@ def Edit(items):
       try {
         for (const item of editItems) {
           if (item.isCard) {
+            if (item.model.isEmptyDraft) {
+              continue;
+            }
             if(item.model.isDirty) {
               dirtyCount ++;
               if (!item.model.changedAfterLastCheck) {
@@ -217,6 +222,7 @@ def Edit(items):
       }
       const closeCard = async () => {
         if (!isSeparator) {
+          this.closeCard(currentItem);
         }
       }
       const deleteCard = (force=false) => {
@@ -373,7 +379,6 @@ def Edit(items):
           }
         }
       }
-
     }
 
     this.openCard = async (cid) => {
