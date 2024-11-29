@@ -206,7 +206,7 @@ def PreviewCard(card):
           return `<h${depth} class="${style}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
         },
         paragraph({tokens}) {
-          const classes = ['mb-10px'].join(' ');
+          const classes = ['mb-15px'].join(' ');
           return `<p class="${classes}">${this.parser.parseInline(tokens)}</p>\n`;
         },
         list(token) {
@@ -221,7 +221,7 @@ def PreviewCard(card):
 
           const positionStyle = 'list-outside';
           const typeStyle = ordered ? 'list-decimal' : 'list-disc';
-          const margin = 'ml-20px';
+          const margin = ['ml-20px', 'mb-15px'].join(' ');
 
           const type = ordered ? 'ol' : 'ul';
           const startAttr = (ordered && start !== 1) ? (' start="' + start + '"') : '';
