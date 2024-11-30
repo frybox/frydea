@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_login import LoginManager
 from pathlib import Path
-from dotnet import dotenv_values
+from dotenv import dotenv_values
 
 config = dotenv_values('.env')
 app = Flask(__name__)
