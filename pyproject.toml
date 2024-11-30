@@ -18,6 +18,7 @@ dependencies = [
     "fryui",
     "flask-sqlalchemy",
     "flask-login",
+    "python-dotenv",
     "markdown",
 ]
 

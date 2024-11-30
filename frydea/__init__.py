@@ -1,12 +1,14 @@
 from flask import Flask
 from flask_login import LoginManager
 from pathlib import Path
+from dotnet import dotenv_values
 
+config = dotenv_values('.env')
 app = Flask(__name__)
 dbpath = Path(__file__).parent.parent / 'db.sqlite3'
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{dbpath.as_posix()}'
 
-app.config['SECRET_KEY'] = '987c4248657574be7960f9e3bdb28b217f7614488555327bcd3af88687e3cd47'
+app.config['SECRET_KEY'] = config['SECRET_KEY']
 
 
 from frydea.database import db
