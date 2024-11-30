@@ -145,7 +145,7 @@ def Index(cidtimes):
     <div ref=(container)
          id="index-area"
          box-border bg-secondary-bgx
-         p-4px h-full overflow-auto
+         p-4 h-full overflow-auto
          @keydown=(handleIndexKey)
          @click=(handleClick)>
       <div>

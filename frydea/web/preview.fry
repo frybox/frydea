@@ -8,7 +8,7 @@ def Preview():
     <div ref=(container)
          id="preview-area"
          box-border h-full bg-secondary-bgx
-         h-full overflow-auto p-4px
+         h-full overflow-auto p-2
          @keydown=(handleCardKey)>
       <PreviewCard frytemplate ref=(template) {card} />
     </div>
@@ -172,7 +172,7 @@ def PreviewCard(card):
       </div>
       <div ref=(elContent)
            flex-auto w-full
-           p-5px
+           p-4
            bg-secondary-bg overflow-hidden text-14px>
       </div>
     </div>
