@@ -148,7 +148,7 @@ def PreviewCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
   cid = card.id if card.id else 0
   <template>
-    <div mx-4px w-sub,100%,8px mb-20px min-h-60px
+    <div w-full mb-20px min-h-60px
          border border-gray-bdx rounded-md
          shadow hover:shadow-md
          focus="outline outline-4 outline-primaryax"

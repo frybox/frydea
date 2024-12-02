@@ -477,7 +477,7 @@ def Edit(items):
 
 def CardSeparator(min_cid, max_cid, count):
   <template>
-    <div my-4 w-sub,100%,8px
+    <div my-4 w-full
          border border-gray-bdx rounded-md>
       <button ref=(upButton) @click=(expandUp)
               mx-4px w-sub,100%,8px mb-4px
@@ -577,7 +577,7 @@ def EditorCard(card):
   time = card.update_time.strftime('%Y-%m-%d %H:%M')
   word_count = word_counter(card.content)
   <template>
-    <div w-sub,100%,8px min-h-200px my-4
+    <div w-full min-h-200px my-4
          border border-gray-bdx rounded-md
          shadow hover:shadow-md
          focus="outline outline-4 outline-primaryax"
