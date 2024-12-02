@@ -199,10 +199,11 @@ def PreviewCard(card):
     marked.use({
       renderer: {
         heading({tokens, depth}) {
-          const styles = ['text-2xl', 'text-xl', 'text-lg', 'text-base', 'text-base', 'text-base']
+          const myStyles = ['my-25px', 'my-20px', 'my-15px', 'my-10px', 'my-10px', 'my-10px']
+          const textStyles = ['text-2xl', 'text-xl', 'text-lg', 'text-base', 'text-base', 'text-base']
           if (depth < 1) depth = 1;
           if (depth > 6) depth = 6;
-          const style = styles[depth-1];
+          const style = `${myStyles[depth-1]} ${textStyles[depth-1]}`;
           return `<h${depth} class="${style}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
         },
         paragraph({tokens}) {
