@@ -117,6 +117,12 @@ def Preview():
         }
         console.log('closeCard');
       }
+
+      const editCard = async () => {
+        if (!currentCard.model.isDraft) {
+          await this.g.editArea.openCard(currentCard.model.cid);
+        }
+      }
       const broadenCard = () => {
         this.fryparent.narrow();
       }
@@ -135,6 +141,7 @@ def Preview():
         KeyG: () => moveEnd(e.shiftKey),
         KeyC: () => closeCard(e.shiftKey),
         KeyD: () => closeCard(e.shiftKey),
+        KeyE: editCard,
         KeyB: broadenCard,
         KeyN: narrowCard,
       }
